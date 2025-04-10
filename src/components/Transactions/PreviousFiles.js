@@ -1,13 +1,16 @@
 // src/components/Transactions/PreviousFiles.js
 import React, { useState, useEffect } from "react";
-import { auth, db } from "../../firebase/config";
+import { auth, db, storage } from "../../firebase/config";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { ref, getBlob } from "firebase/storage";
+import { parseOFXContent } from "../../utils/OFXParser";
 import "./Transactions.css";
 
 const PreviousFiles = ({ onFileSelected, onError }) => {
   const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState([]);
   const [expandedDetails, setExpandedDetails] = useState(null);
+  const [fetchingTransactions, setFetchingTransactions] = useState(false);
 
   useEffect(() => {
     loadPreviousFiles();
@@ -23,7 +26,7 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
         return;
       }
       
-      // Query para buscar arquivos OFX do usuário
+      // Query para buscar referências aos arquivos OFX do usuário
       const filesQuery = query(
         collection(db, "ofxFiles"),
         where("userId", "==", currentUser.uid)
@@ -49,7 +52,8 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
           periodLabel: data.periodLabel || "Período não especificado",
           month: data.month,
           year: data.year,
-          rawTransactions: data.rawTransactions || null // Guardar referência às transações brutas
+          filePath: data.filePath || null,
+          fileURL: data.fileURL || null
         });
       });
       
@@ -67,7 +71,7 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
 
   const handleFileSelect = async (fileId) => {
     try {
-      setLoading(true);
+      setFetchingTransactions(true);
       
       const currentUser = auth.currentUser;
       if (!currentUser) {
@@ -88,69 +92,40 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
         throw new Error("Você não tem permissão para acessar este arquivo");
       }
       
-      // Verificar se temos as transações brutas armazenadas no documento
-      if (fileData.rawTransactions && Array.isArray(fileData.rawTransactions) && fileData.rawTransactions.length > 0) {
-        console.log("Usando transações brutas armazenadas no documento do arquivo");
-        
-        // Usar as transações brutas armazenadas
-        const transactions = fileData.rawTransactions.map(t => ({
-          ...t,
-          date: t.date instanceof Date ? t.date : new Date(t.date),
-          period: fileData.period,
-          periodLabel: fileData.periodLabel,
-          month: fileData.month,
-          year: fileData.year?.toString()
-        }));
-        
-        // Chamar o callback com as transações carregadas e o ID do arquivo
-        onFileSelected(transactions, fileId);
-        setLoading(false);
-        return;
-      }
-      
-      // Se não temos transações brutas, tentar buscar transações já categorizadas
-      const transactionsQuery = query(
-        collection(db, "transactions"),
-        where("fileId", "==", fileId),
-        where("userId", "==", currentUser.uid)
-      );
-      
-      const transactionsSnapshot = await getDocs(transactionsQuery);
-      
-      // Se não encontramos transações categorizadas
-      if (transactionsSnapshot.empty) {
+      // Verificar se temos o caminho do arquivo no Storage
+      if (!fileData.filePath) {
         throw new Error(
-          "Não foram encontradas transações para este arquivo. Este arquivo foi importado " +
-          "antes da atualização que armazena os dados brutos. Por favor, importe o arquivo novamente."
+          "Este arquivo foi importado antes da atualização do sistema. " +
+          "Por favor, importe o arquivo novamente."
         );
       }
       
-      // Convertendo dados do Firestore
-      let transactions = [];
+      // Buscar o arquivo do Firebase Storage
+      const storageRef = ref(storage, fileData.filePath);
+      const blob = await getBlob(storageRef);
       
-      transactionsSnapshot.forEach(doc => {
-        const data = doc.data();
-        transactions.push({
-          id: data.transactionId || doc.id,
-          date: data.date?.toDate() || new Date(),
-          amount: data.amount || 0,
-          description: data.description || "",
-          category: data.category || null,
-          categoryPath: data.categoryPath || null,
-          period: data.period || fileData.period,
-          periodLabel: data.periodLabel || fileData.periodLabel,
-          month: data.month || fileData.month,
-          year: data.year || fileData.year?.toString()
-        });
-      });
+      // Converter o Blob para texto
+      const fileContent = await blob.text();
+      
+      // Processar o conteúdo do arquivo OFX
+      const transactions = parseOFXContent(fileContent);
+      
+      // Adicionar informações de período às transações
+      const enhancedTransactions = transactions.map(transaction => ({
+        ...transaction,
+        period: fileData.period,
+        periodLabel: fileData.periodLabel,
+        month: fileData.month,
+        year: fileData.year?.toString()
+      }));
       
       // Chamar o callback com as transações carregadas e o ID do arquivo
-      onFileSelected(transactions, fileId);
+      onFileSelected(enhancedTransactions, fileId);
     } catch (error) {
       console.error("Erro ao carregar transações do arquivo:", error);
       onError(`Erro ao carregar transações: ${error.message}`);
     } finally {
-      setLoading(false);
+      setFetchingTransactions(false);
     }
   };
 
@@ -210,17 +185,17 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
                     <p><strong>Data de upload:</strong> {formatDate(file.uploadDate)}</p>
                     <p><strong>Número de transações:</strong> {file.transactionCount}</p>
                     <p><strong>Período:</strong> {file.periodLabel}</p>
-                    {file.rawTransactions && (
-                      <p><strong>Tipo:</strong> <span style={{color: '#4caf50'}}>Reprocessável</span></p>
+                    {file.filePath && (
+                      <p><strong>Tipo:</strong> <span style={{color: '#4caf50'}}>Arquivo no Storage</span></p>
                     )}
                   </div>
                   <div className="file-actions">
                     <button 
                       className="load-file-button"
                       onClick={() => handleFileSelect(file.id)}
-                      disabled={loading}
+                      disabled={fetchingTransactions}
                     >
-                      {loading ? "Carregando..." : "Carregar Transações"}
+                      {fetchingTransactions ? "Carregando..." : "Carregar Transações"}
                     </button>
                   </div>
                 </div>

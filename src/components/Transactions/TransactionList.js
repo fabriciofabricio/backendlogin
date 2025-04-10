@@ -10,7 +10,8 @@ import {
   serverTimestamp,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  updateDoc
 } from "firebase/firestore";
 import TransactionItem from "./TransactionItem";
 
@@ -191,6 +192,12 @@ const TransactionList = ({ transactions, fileId, categories, onComplete }) => {
       for (const transaction of transactionsToSave) {
         await addDoc(collection(db, "transactions"), transaction);
       }
+      
+      // Atualizar o documento do arquivo com a contagem de transações categorizadas
+      await updateDoc(doc(db, "ofxFiles", fileId), {
+        categorizedCount: transactionsToSave.length,
+        lastCategorizedAt: serverTimestamp()
+      });
       
       // Call the onComplete callback to notify parent component
       if (onComplete) {

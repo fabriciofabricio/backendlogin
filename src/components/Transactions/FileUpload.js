@@ -1,7 +1,8 @@
 // src/components/Transactions/FileUpload.js
 import React, { useState } from "react";
-import { auth, db } from "../../firebase/config";
+import { auth, db, storage } from "../../firebase/config";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { parseOFXFile } from "../../utils/OFXParser";
 import "./Transactions.css";
 
@@ -69,28 +70,29 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
       setUploading(true);
       setProgress(20);
 
-      // 1. Parse the OFX file to extract transactions
-      const transactions = await parseOFXFile(file);
-      setProgress(60);
-
-      // 2. Verificar usuário atual
+      // Verificar usuário atual
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("Usuário não autenticado.");
 
-      // 3. Formatar o período (mês/ano) para armazenar
+      // Formatar o período (mês/ano)
       const period = `${year}-${month}`;
       const periodLabel = `${months.find(m => m.value === month)?.label} de ${year}`;
       
-      // 4. Preparar as transações brutas para armazenamento, garantindo serializabilidade
-      const rawTransactions = transactions.map(t => ({
-        id: t.id,
-        date: t.date, // Firestore aceita objetos Date
-        amount: t.amount,
-        description: t.description,
-        createdAt: new Date()
-      }));
+      // 1. Fazer upload do arquivo para o Firebase Storage
+      const storageFilePath = `ofx/${currentUser.uid}/${period}/${file.name}`;
+      const storageRef = ref(storage, storageFilePath);
       
-      // 5. Salvar metadados e transações brutas no Firestore
+      await uploadBytes(storageRef, file);
+      setProgress(50);
+      
+      // Obter URL de download para referência
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      // 2. Parse the OFX file to extract transactions (apenas para exibição imediata)
+      const transactions = await parseOFXFile(file);
+      setProgress(80);
+      
+      // 3. Salvar referência ao arquivo no Firestore
       const fileRef = await addDoc(collection(db, "ofxFiles"), {
         userId: currentUser.uid,
         fileName: file.name,
@@ -100,12 +102,13 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
         year,
         period,
         periodLabel,
-        rawTransactions // Armazenar transações brutas para reprocessamento futuro
+        filePath: storageFilePath,
+        fileURL: downloadURL
       });
 
       setProgress(100);
 
-      // 6. Associar o período às transações
+      // 4. Associar o período às transações
       const transactionsWithPeriod = transactions.map(transaction => ({
         ...transaction,
         period,
@@ -114,7 +117,7 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
         year: year.toString()
       }));
 
-      // 7. Passar as transações analisadas para o componente pai
+      // 5. Passar as transações analisadas para o componente pai
       onTransactionsLoaded(transactionsWithPeriod, fileRef.id);
 
       // Reset the form
@@ -125,7 +128,6 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
       onError(`Erro ao processar o arquivo: ${error.message}`);
     } finally {
       setUploading(false);
-      setProgress(0);
     }
   };
 
