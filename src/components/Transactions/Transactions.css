@@ -1,0 +1,579 @@
+/* src/components/Transactions/Transactions.css */
+
+/* Estilos existentes de File Upload e Transaction List */
+/* File Upload Styles */
+.file-upload-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    margin-bottom: 25px;
+  }
+  
+  .file-upload-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .file-input {
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+  }
+  
+  .file-label {
+    display: inline-block;
+    padding: 12px 20px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .file-label:hover {
+    background-color: #e9e9e9;
+  }
+  
+  /* Novos estilos para seleção de período */
+  .period-selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .period-field {
+    flex: 1;
+    min-width: 150px;
+  }
+  
+  .period-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+    font-size: 14px;
+  }
+  
+  .period-select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+  }
+  
+  .upload-button-container {
+    margin-bottom: 20px;
+  }
+  
+  .upload-button {
+    padding: 12px 25px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 180px;
+    width: 100%;
+  }
+  
+  .upload-button:disabled {
+    background-color: #a6c5f7;
+    cursor: not-allowed;
+  }
+  
+  .upload-progress {
+    margin: 15px 0;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background-color: #4285f4;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  
+  .progress-text {
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+    margin-top: 5px;
+  }
+  
+  .upload-instructions {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+  }
+  
+  .upload-instructions p {
+    color: #666;
+    font-size: 14px;
+    margin: 5px 0;
+  }
+  
+  /* Transaction List Styles */
+  .transactions-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    margin-bottom: 25px;
+  }
+  
+  .transactions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .transactions-header h3 {
+    margin: 0;
+    color: #333;
+  }
+  
+  .transactions-count {
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .transactions-list {
+    border: 1px solid #eee;
+    border-radius: 6px;
+  }
+  
+  .transactions-empty {
+    padding: 30px;
+    text-align: center;
+    color: #666;
+  }
+  
+  .transaction-filters {
+    display: flex;
+    margin-bottom: 15px;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .filter-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .filter-select {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+  }
+  
+  /* Transaction Item Styles */
+  .transaction-item {
+    display: flex;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+  }
+  
+  .transaction-item:last-child {
+    border-bottom: none;
+  }
+  
+  .transaction-item:hover {
+    background-color: #f9f9f9;
+  }
+  
+  .transaction-date {
+    flex: 0 0 100px;
+    padding-right: 15px;
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .transaction-details {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .transaction-description {
+    margin: 0 0 5px;
+    font-weight: 500;
+    color: #333;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .transaction-amount {
+    flex: 0 0 130px;
+    text-align: right;
+    padding: 0 15px;
+    font-weight: 500;
+    font-size: 16px;
+  }
+  
+  .amount-positive {
+    color: #4caf50;
+  }
+  
+  .amount-negative {
+    color: #f44336;
+  }
+  
+  .transaction-category {
+    flex: 0 0 250px;
+    padding-left: 15px;
+  }
+  
+  .category-select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+  }
+  
+  .category-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .category-change {
+    margin-left: 10px;
+    background: none;
+    border: none;
+    color: #4285f4;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: underline;
+  }
+  
+  .save-all-button {
+    margin-top: 20px;
+    padding: 12px 25px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    width: 100%;
+  }
+  
+  .save-all-button:disabled {
+    background-color: #a5d6a7;
+    cursor: not-allowed;
+  }
+  
+  .pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    gap: 5px;
+  }
+  
+  .pagination-button {
+    padding: 8px 12px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .pagination-button.active {
+    background-color: #4285f4;
+    color: white;
+    border-color: #4285f4;
+  }
+  
+  .pagination-button:disabled {
+    background-color: #f5f5f5;
+    color: #aaa;
+    cursor: not-allowed;
+  }
+  
+  /* Novos estilos para PreviousFiles */
+  .previous-files-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    margin-bottom: 25px;
+  }
+  
+  .previous-files-container h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .loading-message, .no-files-message {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+  }
+  
+  .files-list {
+    border: 1px solid #eee;
+    border-radius: 6px;
+    margin-bottom: 20px;
+  }
+  
+  .file-item {
+    border-bottom: 1px solid #eee;
+  }
+  
+  .file-item:last-child {
+    border-bottom: none;
+  }
+  
+  .file-header {
+    display: flex;
+    padding: 15px;
+    cursor: pointer;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+  }
+  
+  .file-header:hover {
+    background-color: #f9f9f9;
+  }
+  
+  .file-name {
+    flex: 1;
+    font-weight: 500;
+    color: #333;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .file-icon {
+    margin-right: 10px;
+    font-size: 18px;
+  }
+  
+  .file-period {
+    flex: 0 0 200px;
+    text-align: right;
+    color: #666;
+    padding: 0 15px;
+  }
+  
+  .file-expand-icon {
+    flex: 0 0 20px;
+    text-align: center;
+    color: #999;
+  }
+  
+  .file-details {
+    padding: 0 15px 15px 15px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #eee;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .file-details-info {
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .file-details-info p {
+    margin: 8px 0;
+    color: #555;
+    font-size: 14px;
+  }
+  
+  .file-actions {
+    flex: 0 0 200px;
+    text-align: right;
+  }
+  
+  .load-file-button {
+    padding: 8px 16px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+  }
+  
+  .load-file-button:hover {
+    background-color: #3367d6;
+  }
+  
+  .load-file-button:disabled {
+    background-color: #a6c5f7;
+    cursor: not-allowed;
+  }
+  
+  .refresh-files {
+    text-align: center;
+  }
+  
+  .refresh-files-button {
+    padding: 8px 16px;
+    background-color: #f5f5f5;
+    color: #555;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+  }
+  
+  .refresh-files-button:hover {
+    background-color: #e9e9e9;
+  }
+  
+  .refresh-files-button:disabled {
+    color: #aaa;
+    cursor: not-allowed;
+  }
+  
+  /* Abas para upload/arquivos anteriores */
+  .tabs-container {
+    margin-bottom: 20px;
+  }
+  
+  .tabs-header {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+  }
+  
+  .tab-button {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.3s;
+  }
+  
+  .tab-button.active {
+    color: #4285f4;
+    border-bottom-color: #4285f4;
+  }
+  
+  .tab-button:hover {
+    color: #4285f4;
+  }
+  
+  .tab-content {
+    display: none;
+  }
+  
+  .tab-content.active {
+    display: block;
+  }
+  
+  /* Responsividade */
+  @media (max-width: 768px) {
+    .transaction-item {
+      flex-wrap: wrap;
+    }
+    
+    .transaction-date {
+      flex: 0 0 100%;
+      padding-right: 0;
+      margin-bottom: 10px;
+    }
+    
+    .transaction-amount {
+      flex: 0 0 100%;
+      text-align: left;
+      padding: 0;
+      margin: 10px 0;
+    }
+    
+    .transaction-category {
+      flex: 0 0 100%;
+      padding-left: 0;
+    }
+    
+    .file-header {
+      flex-wrap: wrap;
+    }
+    
+    .file-name {
+      flex: 0 0 100%;
+      margin-bottom: 5px;
+    }
+    
+    .file-period {
+      flex: 1;
+      text-align: left;
+      padding-left: 28px; /* Alinhar com o nome após o ícone */
+    }
+    
+    .file-details {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .file-actions {
+      flex: 0 0 auto;
+      text-align: center;
+      margin-top: 15px;
+    }
+    
+    .period-selection {
+      flex-direction: column;
+    }
+  }

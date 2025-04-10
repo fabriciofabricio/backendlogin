@@ -1,0 +1,97 @@
+const financialCategories = {
+    "RECEITA BRUTA": [
+      "Dinheiro",
+      "Cheque",
+      "Boleto",
+      "Transferência",
+      "Cartão / Pix / TED",
+      "Ifood",
+      "Outras Entradas"
+    ],
+    "(-) DEDUÇÕES DA RECEITA": [
+      "ISS",
+      "ICMS",
+      "PIS/COFINS"
+    ],
+    "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS": [
+      "Resgate de Aplicação",
+      "Empréstimo",
+      "Aporte de Sócio"
+    ],
+    "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)": [
+      "Insumos e ingredientes",
+      "Doces",
+      "Carnes",
+      "Bebidas",
+      "Vinho",
+      "Chopp",
+      "Hortifrúti",
+      "Café"
+    ],
+    "(-) DESPESAS OPERACIONAIS": [
+        "DAS",
+        "Contabilidade",
+        "Consultoria / Assessoria",
+        "Advogado",
+        "Segurança",
+        "Sistema",
+        "Despesa Bancária",
+        "Despesa Financeira",
+        "Correio / Cartório",
+        "Outras Despesas ADM",
+        "Aluguel",
+        "Condomínio",
+        "Energia Elétrica",
+        "Gás",
+        "Água / Esgoto (Sanepar)",
+        "Internet",
+        "Telefone e TV a Cabo",
+        "Estacionamento",
+        "Equipamentos",
+        "Informática",
+        "Predial",
+        "Móveis e Utensílios",
+        "Dedetização",
+        "Propaganda e Publicidade",
+        "Serviços Gráficos",
+        "Material de Escritório",
+        "Embalagem / Descartáveis",
+        "Limpeza / Higiene",
+        "Materiais de Reposição",
+        "Salário",
+        "Adiantamento",
+        "Free-lance / Taxa",
+        "13º Salário",
+        "Férias + Abono",
+        "Rescisão Contratual",
+        "Vale Transporte",
+        "Exame Médico",
+        "FGTS",
+        "Contribuição Sindical",
+        "Refeição Funcionário",
+        "INSS",
+        "Treinamento",
+        "Uniforme",
+        "Farmácia",
+        "Artístico",
+        "Outras Despesas RH",
+        "Locação de Equipamentos",
+        "Aquisição de Equipamentos"
+    ],
+    "(-) DESPESAS COM SÓCIOS": [
+      "Despesas de Sócios",
+      "Pró-labore",
+      "Imposto de Renda Pessoa Física"
+    ],
+    "(-) INVESTIMENTOS": [
+      "Obras e Instalações",
+      "Informática",
+      "Equipamentos / Aplicações em Fundos"
+    ]
+  };
+
+  DTPOSTED → Data da transação
+
+TRNAMT → Valor da transação
+
+MEMO → Descrição da transação.

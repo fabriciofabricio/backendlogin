@@ -1,0 +1,217 @@
+/* src/components/Auth/CategorySelection.css */
+.category-selection-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+    padding: 20px;
+  }
+  
+  .category-selection-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    width: 100%;
+    max-width: 500px; /* Limitando a largura máxima */
+    animation: fadeIn 0.3s ease;
+  }
+  
+  /* Estilos para a barra de progresso */
+  .progress-bar-container {
+    margin-bottom: 30px;
+  }
+  
+  .progress-text {
+    text-align: right;
+    color: #4285f4;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background-color: #4285f4;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  
+  /* Título e número da etapa */
+  .step-heading {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-top: 10px;
+  }
+  
+  .step-number {
+    display: inline-block;
+    padding: 6px 16px;
+    background-color: #4285f4;
+    color: white;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 15px;
+  }
+  
+  .category-group-title {
+    text-align: center;
+    color: #333;
+    font-size: 22px;
+    margin-top: 5px;
+    margin-bottom: 20px;
+  }
+  
+  .instruction {
+    text-align: left;
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 15px;
+  }
+  
+  /* Ajustes para a lista de categorias */
+  .categories-container {
+    margin-bottom: 30px;
+  }
+  
+  .category-list.single-page {
+    display: flex;
+    flex-direction: column;
+    max-height: 300px; /* Altura fixa para evitar layout instável */
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 10px;
+  }
+  
+  .single-page .category-item {
+    flex: 0 0 auto;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  
+  .single-page .category-item:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+  }
+  
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+  
+  .checkbox-label:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .checkbox-label input {
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+  }
+  
+  /* Botões de navegação */
+  .navigation-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  .previous-button, 
+  .next-button {
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 0;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 48%;
+  }
+  
+  .previous-button:hover, 
+  .next-button:hover {
+    background-color: #3367d6;
+  }
+  
+  .previous-button:disabled {
+    background-color: #a6c5f7;
+    cursor: not-allowed;
+  }
+  
+  /* Animação de transição */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Contagem de selecionados */
+  .selected-count {
+    text-align: right;
+    font-size: 14px;
+    color: #666;
+    margin-top: 10px;
+  }
+  
+  /* Estilo para o estado de carregamento */
+  .loading-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+  }
+  
+  .loading-card p {
+    margin-top: 20px;
+    color: #666;
+  }
+  
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid #e0e0e0;
+    border-top-color: #4285f4;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Responsividade para telas menores */
+  @media (max-width: 576px) {
+    .category-selection-card {
+      padding: 20px;
+    }
+    
+    .category-list.single-page {
+      max-height: 250px;
+    }
+  }
