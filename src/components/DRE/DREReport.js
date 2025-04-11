@@ -248,39 +248,49 @@ const DREReport = () => {
     }
   };
 
-  // Função para calcular os resultados do DRE
-  const calculateDREResults = (dreStructure) => {
-    const results = {};
-    
-    // 1. Receita Bruta (Receita Total)
-    results.receitaBruta = dreStructure["RECEITA"].total || 0;
-    
-    // 2. Receita Líquida (Receita Bruta - Deduções)
-    results.receitaLiquida = results.receitaBruta - (dreStructure["(-) DEDUÇÕES DA RECEITA"].total || 0);
-    
-    // 3. Lucro Bruto (Receita Líquida - Custos)
-    results.lucroBruto = results.receitaLiquida - (dreStructure["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"].total || 0);
-    
-    // 4. Resultado Operacional (Lucro Bruto - Despesas Operacionais + Outras Receitas)
-    // Invertendo o sinal das despesas operacionais para garantir que valores negativos sejam processados corretamente
-    const despesasOperacionais = dreStructure["(-) DESPESAS OPERACIONAIS"].total || 0;
-    const outrasReceitas = dreStructure["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"].total || 0;
-    
-    // Se a despesa estiver como valor negativo, usamos adição (pois o valor já está negativo)
-    // Se estiver como valor positivo, usamos subtração (forma convencional)
-    results.resultadoOperacional = results.lucroBruto + despesasOperacionais + outrasReceitas;
-    
-    // 5. Resultado Antes do IR (Resultado Operacional - Despesas com Sócios)
-    const despesasSocios = dreStructure["(-) DESPESAS COM SÓCIOS"].total || 0;
-    results.resultadoAntesIR = results.resultadoOperacional + despesasSocios;
-    
-    // 6. Resultado Líquido (Resultado Antes do IR - Investimentos + Não Categorizados)
-    const investimentos = dreStructure["(-) INVESTIMENTOS"].total || 0;
-    const naoCategorizado = dreStructure["NÃO CATEGORIZADO"].total || 0;
-    results.resultadoLiquido = results.resultadoAntesIR + investimentos + naoCategorizado;
-    
-    return results;
+  // Função corrigida para calcular os resultados do DRE
+const calculateDREResults = (dreStructure) => {
+  const results = {};
+  
+  // Função utilitária para tratar valores de forma consistente
+  // Garantindo que categorias de despesa sejam valores absolutos (para subtração)
+  const getAbsValueIfNegative = (value) => {
+    // Se o valor armazenado for negativo, usamos o valor absoluto para subtração
+    return value < 0 ? Math.abs(value) : value;
   };
+  
+  // 1. Receita Bruta (Receita Total)
+  results.receitaBruta = dreStructure["RECEITA"].total || 0;
+  
+  // 2. Receita Líquida (Receita Bruta - Deduções)
+  const deducoes = dreStructure["(-) DEDUÇÕES DA RECEITA"].total || 0;
+  results.receitaLiquida = results.receitaBruta - getAbsValueIfNegative(deducoes);
+  
+  // 3. Lucro Bruto (Receita Líquida - Custos)
+  const custos = dreStructure["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"].total || 0;
+  results.lucroBruto = results.receitaLiquida - getAbsValueIfNegative(custos);
+  
+  // 4. Resultado Operacional (Lucro Bruto - Despesas Operacionais + Outras Receitas)
+  const despesasOperacionais = dreStructure["(-) DESPESAS OPERACIONAIS"].total || 0;
+  const outrasReceitas = dreStructure["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"].total || 0;
+  
+  // Subtrair despesas operacionais (garantindo que sejam tratadas como valor a subtrair)
+  // e somar outras receitas
+  results.resultadoOperacional = results.lucroBruto - getAbsValueIfNegative(despesasOperacionais) + getAbsValueIfNegative(outrasReceitas);
+  
+  // 5. Resultado Antes do IR (Resultado Operacional - Despesas com Sócios)
+  const despesasSocios = dreStructure["(-) DESPESAS COM SÓCIOS"].total || 0;
+  results.resultadoAntesIR = results.resultadoOperacional - getAbsValueIfNegative(despesasSocios);
+  
+  // 6. Resultado Líquido (Resultado Antes do IR - Investimentos + Não Categorizados)
+  const investimentos = dreStructure["(-) INVESTIMENTOS"].total || 0;
+  const naoCategorizado = dreStructure["NÃO CATEGORIZADO"].total || 0;
+  
+  // Subtrair investimentos e adicionar ou subtrair não categorizados conforme o sinal
+  results.resultadoLiquido = results.resultadoAntesIR - getAbsValueIfNegative(investimentos) + naoCategorizado;
+  
+  return results;
+};
 
   // Função para formatar valores monetários
   const formatCurrency = (value) => {

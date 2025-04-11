@@ -1,4 +1,5 @@
 // src/utils/OFXParser.js
+import { categorizeTransaction } from './bankCategorizationRules';
 
 /**
  * Parse the OFX file content to extract transactions and bank information
@@ -65,43 +66,8 @@ export const parseOFXContent = (content) => {
       // Use the name field if available, otherwise fallback to memo
       const description = name || memo;
       
-      // Auto-categorize based on bank and transaction description
-      let category = null;
-      let categoryPath = null;
-      let autoMapped = false;
-      
-      // Apply auto-categorization rules based on bank
-      // IMPORTANTE: Apenas aplicar para transações com valor positivo (crédito)
-      if (bankInfo.org && amount > 0) {
-        // For COOP bank
-        if (bankInfo.org.includes('COOP DE CRED') || bankInfo.org.includes('SICOOB')) {
-          if (description.includes('DEB') || description.includes('DB')) {
-            category = 'Cartão de Débito';
-            categoryPath = 'RECEITA.Cartão de Débito';
-            autoMapped = true;
-          } else if (description.includes('ANTEC') || description.includes('Antec') || description.includes('CR')) {
-            category = 'Cartão de Crédito';
-            categoryPath = 'RECEITA.Cartão de Crédito';
-            autoMapped = true;
-          } else if (description.includes('PIX')) {
-            category = 'Pix';
-            categoryPath = 'RECEITA.Pix';
-            autoMapped = true;
-          } else if (description.includes('TED')) {
-            category = 'TED';
-            categoryPath = 'RECEITA.TED';
-            autoMapped = true;
-          } else if (description.includes('IFOOD')) {
-            category = 'Ifood';
-            categoryPath = 'RECEITA.Ifood';
-            autoMapped = true;
-          }
-        }
-        
-        // Additional rules can be added for other banks here
-      }
-      
-      transactions.push({
+      // Criar objeto base da transação
+      const transaction = {
         id: fitid,
         date,
         amount,
@@ -109,12 +75,23 @@ export const parseOFXContent = (content) => {
         name,
         memo,
         trnType,
-        category, // Maybe auto-categorized
-        categoryPath, // Full path of the category
-        autoMapped, // Flag indicating if auto-mapped
+        category: null,
+        categoryPath: null,
+        autoMapped: false,
         createdAt: new Date(),
-        bankInfo: { ...bankInfo } // Include bank info with each transaction
-      });
+        bankInfo: { ...bankInfo }
+      };
+      
+      // Aplicar regras de categorização baseadas no banco
+      const categoryInfo = categorizeTransaction(transaction, bankInfo);
+      
+      if (categoryInfo) {
+        transaction.category = categoryInfo.category;
+        transaction.categoryPath = categoryInfo.categoryPath;
+        transaction.autoMapped = categoryInfo.autoMapped;
+      }
+      
+      transactions.push(transaction);
     }
   }
   
