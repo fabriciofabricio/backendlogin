@@ -13,7 +13,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [categoriesData, setCategoriesData] = useState(null);
   const [recentTransactions, setRecentTransactions] = useState([]);
-  const [activeTab, setActiveTab] = useState("categories"); // 'categories' ou 'transactions'
+  const [activeTab, setActiveTab] = useState("categories"); // 'categories', 'transactions' ou 'dre'
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -71,6 +71,11 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
+  };
+
+  // Função para navegar para a página do DRE
+  const navigateToDRE = () => {
+    navigate("/dre");
   };
 
   // Função para organizar as categorias em grupos e subgrupos
@@ -185,6 +190,12 @@ const Dashboard = () => {
         >
           Transações
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'dre' ? 'active' : ''}`}
+          onClick={() => navigateToDRE()}
+        >
+          DRE
+        </button>
       </div>
 
       {activeTab === 'categories' ? (
@@ -256,7 +267,25 @@ const Dashboard = () => {
 
           {recentTransactions.length > 0 && (
             <div className="dashboard-card">
-              <h2>Transações Recentes</h2>
+              <h2>
+                Transações Recentes
+                <button 
+                  className="view-dre-button"
+                  onClick={navigateToDRE}
+                  style={{
+                    float: 'right',
+                    padding: '6px 12px',
+                    backgroundColor: '#3498db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Ver DRE
+                </button>
+              </h2>
               <div className="recent-transactions">
                 <table className="transactions-table">
                   <thead>

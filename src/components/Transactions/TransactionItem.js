@@ -10,6 +10,7 @@ const TransactionItem = ({
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isEditing, setIsEditing] = useState(!transaction.category);
   const [flatCategories, setFlatCategories] = useState([]);
+  const [bankName, setBankName] = useState('');
 
   // Format date for display
   const formattedDate = new Date(transaction.date).toLocaleDateString('pt-BR');
@@ -19,6 +20,13 @@ const TransactionItem = ({
     style: 'currency',
     currency: 'BRL'
   }).format(transaction.amount);
+
+  // Extract bank name
+  useEffect(() => {
+    if (transaction.bankInfo && transaction.bankInfo.org) {
+      setBankName(transaction.bankInfo.org);
+    }
+  }, [transaction]);
 
   // Preparar lista simplificada de categorias quando o componente monta ou quando as categorias mudam
   useEffect(() => {
@@ -76,8 +84,11 @@ const TransactionItem = ({
     setIsEditing(!isEditing);
   };
 
+  // Determine if this is an auto-mapped transaction
+  const isAutoMapped = transaction.autoMapped;
+
   return (
-    <div className="transaction-item">
+    <div className={`transaction-item ${isAutoMapped ? 'auto-mapped' : ''}`}>
       <div className="transaction-date">
         {formattedDate}
       </div>
@@ -86,6 +97,11 @@ const TransactionItem = ({
         <p className="transaction-description" title={transaction.description}>
           {transaction.description}
         </p>
+        {bankName && (
+          <span className="bank-tag" title={`Banco: ${bankName}`}>
+            {bankName.length > 20 ? bankName.substring(0, 20) + '...' : bankName}
+          </span>
+        )}
       </div>
       
       <div className={`transaction-amount ${transaction.amount >= 0 ? 'amount-positive' : 'amount-negative'}`}>
@@ -109,8 +125,9 @@ const TransactionItem = ({
           </select>
         ) : (
           <>
-            <span className="category-badge">
+            <span className={`category-badge ${isAutoMapped ? 'auto-mapped-badge' : ''}`}>
               {transaction.category || "Não categorizado"}
+              {isAutoMapped && <span className="auto-tag">Auto</span>}
             </span>
             <button 
               className="category-change"

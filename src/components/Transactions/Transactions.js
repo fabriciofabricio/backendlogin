@@ -102,7 +102,7 @@ const Transactions = () => {
 
   // Handler for when transactions are successfully saved
   const handleTransactionsSaved = (count) => {
-    setSuccess(`${count} transações foram categorizadas e salvas com sucesso!`);
+    setSuccess(`${count} mapeamentos de categorias foram salvos com sucesso!`);
     
     // Clear transactions from the current view
     setTransactions([]);

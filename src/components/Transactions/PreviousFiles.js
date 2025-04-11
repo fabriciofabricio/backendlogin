@@ -53,7 +53,8 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
           month: data.month,
           year: data.year,
           filePath: data.filePath || null,
-          fileURL: data.fileURL || null
+          fileURL: data.fileURL || null,
+          bankInfo: data.bankInfo || null
         });
       });
       
@@ -108,7 +109,9 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
       const fileContent = await blob.text();
       
       // Processar o conteúdo do arquivo OFX
-      const transactions = parseOFXContent(fileContent);
+      const parseResult = parseOFXContent(fileContent);
+      const transactions = parseResult.transactions;
+      const bankInfo = parseResult.bankInfo || fileData.bankInfo;
       
       // Adicionar informações de período às transações
       const enhancedTransactions = transactions.map(transaction => ({
@@ -116,7 +119,8 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
         period: fileData.period,
         periodLabel: fileData.periodLabel,
         month: fileData.month,
-        year: fileData.year?.toString()
+        year: fileData.year?.toString(),
+        bankInfo
       }));
       
       // Chamar o callback com as transações carregadas e o ID do arquivo
@@ -185,6 +189,9 @@ const PreviousFiles = ({ onFileSelected, onError }) => {
                     <p><strong>Data de upload:</strong> {formatDate(file.uploadDate)}</p>
                     <p><strong>Número de transações:</strong> {file.transactionCount}</p>
                     <p><strong>Período:</strong> {file.periodLabel}</p>
+                    {file.bankInfo && file.bankInfo.org && (
+                      <p><strong>Banco:</strong> <span style={{color: '#4caf50'}}>{file.bankInfo.org}</span></p>
+                    )}
                     {file.filePath && (
                       <p><strong>Tipo:</strong> <span style={{color: '#4caf50'}}>Arquivo no Storage</span></p>
                     )}

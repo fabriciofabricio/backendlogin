@@ -7,6 +7,7 @@ import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
 import CategorySelection from "./components/Auth/CategorySelection";
 import Dashboard from "./components/Dashboard/Dashboard";
+import DREReport from "./components/DRE/DREReport";
 
 // Rota protegida que requer autenticação
 const ProtectedRoute = ({ children }) => {
@@ -52,6 +53,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dre" 
+          element={
+            <ProtectedRoute>
+              <DREReport />
             </ProtectedRoute>
           } 
         />

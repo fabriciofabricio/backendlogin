@@ -577,3 +577,63 @@
       flex-direction: column;
     }
   }
+
+  /* Add these new styles to your existing Transactions.css file */
+
+/* Bank info container on upload */
+.bank-info-container {
+  margin: 15px 0;
+  padding: 10px 15px;
+  background-color: #e3f2fd;
+  border-radius: 6px;
+  border-left: 4px solid #2196f3;
+}
+
+.bank-info {
+  display: flex;
+  align-items: center;
+}
+
+.bank-label {
+  font-weight: 600;
+  margin-right: 8px;
+  color: #0d47a1;
+}
+
+.bank-name {
+  color: #0d47a1;
+}
+
+/* Auto-mapped transaction styling */
+.transaction-item.auto-mapped {
+  background-color: #f1f8e9;
+  border-left: 3px solid #8bc34a;
+}
+
+.auto-mapped-badge {
+  background-color: #8bc34a !important;
+  color: white !important;
+  position: relative;
+}
+
+.auto-tag {
+  font-size: 10px;
+  background-color: #558b2f;
+  color: white;
+  padding: 1px 4px;
+  border-radius: 3px;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+}
+
+/* Bank tag in transaction */
+.bank-tag {
+  display: inline-block;
+  font-size: 11px;
+  background-color: #e0e0e0;
+  color: #616161;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 5px;
+}

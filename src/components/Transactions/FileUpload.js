@@ -12,6 +12,7 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
   const [progress, setProgress] = useState(0);
   const [month, setMonth] = useState("");
   const [year, setYear] = useState(new Date().getFullYear());
+  const [bankInfo, setBankInfo] = useState(null);
   
   // Criar array de meses para o select
   const months = [
@@ -33,24 +34,34 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile && (selectedFile.name.endsWith('.ofx') || selectedFile.name.endsWith('.OFX'))) {
       setFile(selectedFile);
       
-      // Tentar detectar mês/ano do nome do arquivo, por ex: extrato_202312.ofx
-      const fileNameMatch = selectedFile.name.match(/(\d{4})(\d{2})/);
-      if (fileNameMatch) {
-        const [, yearStr, monthStr] = fileNameMatch;
-        if (monthStr >= '01' && monthStr <= '12') {
-          setMonth(monthStr);
+      try {
+        // Preview do arquivo para extrair informações do banco
+        const result = await parseOFXFile(selectedFile);
+        setBankInfo(result.bankInfo);
+        
+        // Tentar detectar mês/ano do nome do arquivo, por ex: extrato_202312.ofx
+        const fileNameMatch = selectedFile.name.match(/(\d{4})(\d{2})/);
+        if (fileNameMatch) {
+          const [, yearStr, monthStr] = fileNameMatch;
+          if (monthStr >= '01' && monthStr <= '12') {
+            setMonth(monthStr);
+          }
+          if (yearStr >= '2000' && yearStr <= currentYear.toString()) {
+            setYear(parseInt(yearStr));
+          }
         }
-        if (yearStr >= '2000' && yearStr <= currentYear.toString()) {
-          setYear(parseInt(yearStr));
-        }
+      } catch (error) {
+        console.error("Erro ao analisar o arquivo:", error);
+        // Ainda permitimos o upload mesmo que haja erro na pré-análise
       }
     } else {
       setFile(null);
+      setBankInfo(null);
       onError("Por favor, selecione um arquivo OFX válido.");
     }
   };
@@ -89,7 +100,8 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
       const downloadURL = await getDownloadURL(storageRef);
       
       // 2. Parse the OFX file to extract transactions (apenas para exibição imediata)
-      const transactions = await parseOFXFile(file);
+      const parseResult = await parseOFXFile(file);
+      const { transactions, bankInfo } = parseResult;
       setProgress(80);
       
       // 3. Salvar referência ao arquivo no Firestore
@@ -103,7 +115,8 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
         period,
         periodLabel,
         filePath: storageFilePath,
-        fileURL: downloadURL
+        fileURL: downloadURL,
+        bankInfo: bankInfo || null // Salvar informações do banco
       });
 
       setProgress(100);
@@ -122,6 +135,7 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
 
       // Reset the form
       setFile(null);
+      setBankInfo(null);
       document.getElementById('ofx-file-input').value = '';
     } catch (error) {
       console.error("Error processing OFX file:", error);
@@ -149,6 +163,15 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
           {file ? file.name : "Escolher arquivo OFX"}
         </label>
       </div>
+      
+      {bankInfo && bankInfo.org && (
+        <div className="bank-info-container">
+          <div className="bank-info">
+            <span className="bank-label">Banco identificado:</span>
+            <span className="bank-name">{bankInfo.org}</span>
+          </div>
+        </div>
+      )}
       
       <div className="period-selection">
         <div className="period-field">
@@ -207,7 +230,7 @@ const FileUpload = ({ onTransactionsLoaded, onError }) => {
       
       <div className="upload-instructions">
         <p>Selecione um arquivo OFX do seu banco e especifique o mês e ano do extrato.</p>
-        <p>As transações serão analisadas e você poderá categorizá-las de acordo com suas categorias.</p>
+        <p>As transações serão analisadas e categorizadas automaticamente quando possível.</p>
       </div>
     </div>
   );

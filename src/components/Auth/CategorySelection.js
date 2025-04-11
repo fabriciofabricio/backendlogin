@@ -24,7 +24,11 @@ const CategorySelection = () => {
         "Cheque",
         "Boleto",
         "Transferência",
-        "Cartão / Pix / TED",
+        "Cartão de Crédito",
+        "Cartão de Débito",
+        "Pix",
+        "TED",
+        "VR",
         "Ifood",
         "Outras Entradas"
       ]
