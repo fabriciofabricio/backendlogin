@@ -13,62 +13,65 @@ const CategorySelection = () => {
   const [saving, setSaving] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState({});
   const [currentStep, setCurrentStep] = useState(0);
+  // Nova variável de estado para o modelo de negócio
+  const [businessModel, setBusinessModel] = useState("");
 
   // Estrutura de categorias financeiras com ordem explícita
-  const financialCategories = {
-    "1. RECEITA": {
-      order: 1,
-      displayName: "RECEITA",
-      items: [
-        "Dinheiro",
-        "Cheque",
-        "Boleto",
-        "Transferência",
-        "Cartão de Crédito",
-        "Cartão de Débito",
-        "Pix",
-        "TED",
-        "VR",
-        "Ifood",
-        "Outras Entradas"
-      ]
-    },
-    "2. (-) DEDUÇÕES DA RECEITA": {
-      order: 2,
-      displayName: "(-) DEDUÇÕES DA RECEITA",
-      items: [
-        "ISS",
-        "ICMS",
-        "PIS/COFINS"
-      ]
-    },
-    "4. (+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS": {
-      order: 3,
-      displayName: "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS",
-      items: [
-        "Resgate de Aplicação",
-        "Empréstimo",
-        "Aporte de Sócio"
-      ]
-    },
-    "5. (-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)": {
-      order: 4,
-      displayName: "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)",
-      items: [
-        "Insumos e ingredientes",
-        "Doces",
-        "Carnes",
-        "Bebidas",
-        "Vinho",
-        "Chopp",
-        "Hortifrúti",
-        "Café"
-      ]
-    },
-    "7. (-) DESPESAS OPERACIONAIS": {
-      order: 5,
-      displayName: "(-) DESPESAS OPERACIONAIS",
-      items: [
+  const getFinancialCategories = () => {
+    const baseCategories = {
+      "1. RECEITA": {
+        order: 1,
+        displayName: "RECEITA",
+        items: [
+          "Dinheiro",
+          "Cheque",
+          "Boleto",
+          "Transferência",
+          "Cartão de Crédito",
+          "Cartão de Débito",
+          "Pix",
+          "TED",
+          "VR",
+          "Ifood",
+          "Outras Entradas"
+        ]
+      },
+      "2. (-) DEDUÇÕES DA RECEITA": {
+        order: 2,
+        displayName: "(-) DEDUÇÕES DA RECEITA",
+        items: [
+          "ISS",
+          "ICMS",
+          "PIS/COFINS"
+        ]
+      },
+      "4. (+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS": {
+        order: 3,
+        displayName: "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS",
+        items: [
+          "Resgate de Aplicação",
+          "Empréstimo",
+          "Aporte de Sócio"
+        ]
+      },
+      "5. (-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)": {
+        order: 4,
+        displayName: "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)",
+        items: [
+          "Insumos e ingredientes",
+          "Doces",
+          "Carnes",
+          "Bebidas",
+          "Vinho",
+          "Chopp",
+          "Hortifrúti",
+          "Café"
+        ]
+      },
+      "7. (-) DESPESAS OPERACIONAIS": {
+        order: 5,
+        displayName: "(-) DESPESAS OPERACIONAIS",
+        items: [
           "DAS",
           "Contabilidade",
           "Consultoria / Assessoria",
@@ -117,31 +120,60 @@ const CategorySelection = () => {
           "Outras Despesas RH",
           "Locação de Equipamentos",
           "Aquisição de Equipamentos"
-      ]
-    },
-    "8. (-) DESPESAS COM SÓCIOS": {
-      order: 6,
-      displayName: "(-) DESPESAS COM SÓCIOS",
-      items: [
-        "Despesas de Sócios",
-        "Pró-labore",
-        "Imposto de Renda Pessoa Física"
-      ]
-    },
-    "9. (-) INVESTIMENTOS": {
-      order: 7,
-      displayName: "(-) INVESTIMENTOS",
-      items: [
-        "Obras e Instalações",
-        "Informática",
-        "Equipamentos / Aplicações em Fundos"
-      ]
+        ]
+      },
+      "8. (-) DESPESAS COM SÓCIOS": {
+        order: 6,
+        displayName: "(-) DESPESAS COM SÓCIOS",
+        items: [
+          "Despesas de Sócios",
+          "Pró-labore",
+          "Imposto de Renda Pessoa Física"
+        ]
+      },
+      "9. (-) INVESTIMENTOS": {
+        order: 7,
+        displayName: "(-) INVESTIMENTOS",
+        items: [
+          "Obras e Instalações",
+          "Informática",
+          "Equipamentos / Aplicações em Fundos"
+        ]
+      }
+    };
+
+    // Se o modelo selecionado for Barbearia/Salão
+    if (businessModel === "barbearia") {
+      // Remover Ifood e VR da receita
+      const receiptItems = baseCategories["1. RECEITA"].items;
+      baseCategories["1. RECEITA"].items = receiptItems.filter(
+        item => item !== "Ifood" && item !== "VR"
+      );
+      
+      // Substituir itens do CMV por itens específicos para barbearia/salão
+      baseCategories["5. (-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"].items = [
+        "Lâminas",
+        "Tinturas",
+        "Descolorantes",
+        "Shampoos",
+        "Espuma de barbear",
+        "Loções",
+        "Pomadas",
+        "Óleos para barba",
+        "Esmaltes"
+      ];
     }
+
+    return baseCategories;
   };
+
+  // Obter categorias atualizadas com base no modelo de negócio
+  const financialCategories = getFinancialCategories();
 
   // Converter o objeto de categorias em um array para facilitar a navegação
   const categoryGroups = Object.keys(financialCategories);
-  const totalSteps = categoryGroups.length;
+  // Total de passos agora inclui o modelo de negócio + as categorias
+  const totalSteps = businessModel ? categoryGroups.length + 1 : 1;
   
   // Efeito para resetar a posição de rolagem quando mudar de etapa
   useEffect(() => {
@@ -181,6 +213,11 @@ const CategorySelection = () => {
           console.log("Categorias carregadas:", data.categories);
           setSelectedCategories(data.categories);
         }
+
+        // Se o usuário já tem um modelo de negócio salvo, carregá-lo
+        if (data.businessModel) {
+          setBusinessModel(data.businessModel);
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar categorias do usuário:", error);
@@ -189,8 +226,19 @@ const CategorySelection = () => {
     }
   };
 
+  // Função para selecionar modelo de negócio
+  const handleBusinessModelSelect = (model) => {
+    setBusinessModel(model);
+    // Resetar categorias selecionadas se mudar o modelo de negócio
+    setSelectedCategories({});
+    // Avançar para a próxima etapa
+    setCurrentStep(1);
+  };
+
   const handleCategoryToggle = (category) => {
-    const currentGroup = categoryGroups[currentStep];
+    // Calculamos o índice do grupo adequado porque agora temos a etapa 0 para modelo de negócio
+    const categoryIndex = currentStep - 1;
+    const currentGroup = categoryGroups[categoryIndex];
     const displayName = financialCategories[currentGroup].displayName;
     
     setSelectedCategories(prev => {
@@ -240,10 +288,11 @@ const CategorySelection = () => {
 
       console.log("Salvando categorias para o usuário:", currentUser.uid);
       
-      // Salvar no Firestore
+      // Salvar no Firestore com o modelo de negócio
       await setDoc(doc(db, "userCategories", currentUser.uid), {
         categories: categoriesToSave,
         categoryOrder: categoryOrderData,
+        businessModel: businessModel,
         createdAt: new Date()
       });
 
@@ -293,8 +342,73 @@ const CategorySelection = () => {
     );
   }
 
-  // Obter o grupo e categorias atuais
-  const currentGroup = categoryGroups[currentStep];
+  // Renderizar a seleção de modelo de negócio como etapa 0
+  if (currentStep === 0) {
+    return (
+      <div className="category-selection-container">
+        <div className="category-selection-card">
+          <div className="progress-bar-container">
+            <div className="progress-text">
+              Etapa 0 de {totalSteps - 1}
+            </div>
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: "0%" }}
+              ></div>
+            </div>
+          </div>
+          
+          <div className="step-heading">
+            <span className="step-number">Etapa 0</span>
+            <h2 className="category-group-title">Modelo de Negócio</h2>
+          </div>
+          
+          <p className="instruction">Selecione o tipo de negócio da sua empresa:</p>
+          
+          <div className="business-model-selection">
+            <button 
+              className={`business-model-button ${businessModel === 'restaurante' ? 'selected' : ''}`}
+              onClick={() => handleBusinessModelSelect('restaurante')}
+            >
+              <div className="business-icon">🍽️</div>
+              <div className="business-type">Restaurante/Bar</div>
+            </button>
+            
+            <button 
+              className={`business-model-button ${businessModel === 'barbearia' ? 'selected' : ''}`}
+              onClick={() => handleBusinessModelSelect('barbearia')}
+            >
+              <div className="business-icon">✂️</div>
+              <div className="business-type">Barbearia/Salão</div>
+            </button>
+          </div>
+          
+          <div className="navigation-buttons">
+            <button 
+              className="previous-button" 
+              onClick={handlePrevious} 
+              disabled={true}
+            >
+              Anterior
+            </button>
+            
+            <button 
+              className="next-button" 
+              onClick={handleNext}
+              disabled={!businessModel}
+            >
+              Próximo
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Para as etapas de categoria (1 em diante), ajustar o índice para acessar o grupo correto
+  const categoryIndex = currentStep - 1;
+  const currentGroup = categoryGroups[categoryIndex];
   const currentCategories = financialCategories[currentGroup].items;
 
   return (
@@ -302,7 +416,7 @@ const CategorySelection = () => {
       <div className="category-selection-card">
         <div className="progress-bar-container">
           <div className="progress-text">
-            Etapa {currentStep + 1} de {totalSteps}
+            Etapa {currentStep} de {totalSteps - 1}
           </div>
           <div className="progress-bar">
             <div 
@@ -313,7 +427,7 @@ const CategorySelection = () => {
         </div>
         
         <div className="step-heading">
-          <span className="step-number">Etapa {currentStep + 1}</span>
+          <span className="step-number">Etapa {currentStep}</span>
           <h2 className="category-group-title">{currentGroup}</h2>
         </div>
         
