@@ -12,6 +12,8 @@ import CategoryDetails from "./components/Categories/CategoryDetails";
 import Transactions from "./components/Transactions/Transactions";
 import NonCategorized from "./components/Transactions/NonCategorized";
 import EditCategorized from "./components/Transactions/EditCategorized";
+import PeriodManager from "./components/Periods/PeriodManager";
+import Settings from "./components/Settings/Settings";
 import "./App.css";
 
 // Rota protegida que requer autenticação
@@ -98,6 +100,22 @@ function App() {
           element={
             <ProtectedRoute>
               <EditCategorized />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/periods" 
+          element={
+            <ProtectedRoute>
+              <PeriodManager />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           } 
         />

@@ -476,56 +476,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Categorias */}
-      <div className="categories-section">
-        <div className="section-header">
-          <h2 className="section-title">Suas Categorias Financeiras</h2>
-          <button 
-            className="edit-categories-button"
-            onClick={() => window.location.href = '/select-categories'}
-          >
-            Editar Categorias
-          </button>
-        </div>
-        
-        <p className="categories-count">
-          Você selecionou {totalCategories} categorias.
-        </p>
-        
-        <div className="categories-grid">
-          {Object.entries(groupedCategories)
-            .sort(([, dataA], [, dataB]) => {
-              return dataA.order - dataB.order;
-            })
-            .map(([groupName, groupData], index) => (
-              <div key={index} className="category-group">
-                <div className="category-group-header">{groupName}</div>
-                
-                {/* Categorias normais (sem subgrupo) */}
-                {groupData.normalCategories.length > 0 && (
-                  <ul className="category-list">
-                    {groupData.normalCategories.map((category, catIndex) => (
-                      <li key={catIndex} className="category-item">{category}</li>
-                    ))}
-                  </ul>
-                )}
-                
-                {/* Categorias com subgrupos */}
-                {Object.entries(groupData.subGroups).map(([subGroupName, categories], subIndex) => (
-                  <div key={subIndex} className="category-subgroup">
-                    <h4 className="subgroup-title">{subGroupName}</h4>
-                    <ul className="category-list">
-                      {categories.map((category, catIndex) => (
-                        <li key={catIndex} className="category-item">{category}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            ))}
-        </div>
-      </div>
-
       {/* Transações recentes */}
       {recentTransactions.length > 0 && (
         <div className="transactions-section">

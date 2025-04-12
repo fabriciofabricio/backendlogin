@@ -1,0 +1,434 @@
+/* src/components/Periods/PeriodManager.css */
+.period-manager-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .period-manager-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .period-manager-header h1 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 24px;
+  }
+  
+  .period-manager-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  /* Card para adicionar novo período */
+  .add-period-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    margin-bottom: 20px;
+  }
+  
+  .add-period-card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .add-period-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-group label {
+    font-weight: 500;
+    color: #555;
+  }
+  
+  .file-input-container {
+    position: relative;
+  }
+  
+  .file-input {
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+  }
+  
+  .file-label {
+    display: block;
+    padding: 12px 15px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    color: #555;
+    transition: background-color 0.2s;
+  }
+  
+  .file-label:hover {
+    background-color: #e9e9e9;
+  }
+  
+  .period-selection {
+    display: flex;
+    gap: 15px;
+  }
+  
+  .period-selection .form-group {
+    flex: 1;
+  }
+  
+  .period-select {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    width: 100%;
+  }
+  
+  .add-period-button {
+    padding: 12px 15px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .add-period-button:hover {
+    background-color: #3367d6;
+  }
+  
+  .add-period-button:disabled {
+    background-color: #a6c5f7;
+    cursor: not-allowed;
+  }
+  
+  .upload-progress {
+    margin-top: 10px;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background-color: #4285f4;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  
+  .progress-text {
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+    margin-top: 5px;
+  }
+  
+  /* Card de lista de períodos */
+  .periods-list-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+  }
+  
+  .periods-list-card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .periods-list {
+    overflow-x: auto;
+  }
+  
+  .periods-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .periods-table th,
+  .periods-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .periods-table th {
+    background-color: #f8f9fa;
+    font-weight: 500;
+    color: #2c3e50;
+  }
+  
+  .periods-table tr:hover {
+    background-color: #f9f9f9;
+  }
+  
+  .file-name-cell {
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .download-button {
+    padding: 6px 12px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .download-button:hover {
+    background-color: #3367d6;
+  }
+  
+  .download-button:disabled {
+    background-color: #a6c5f7;
+    cursor: not-allowed;
+  }
+  
+  .delete-button {
+    padding: 6px 12px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .delete-button:hover {
+    background-color: #d32f2f;
+  }
+  
+  .delete-button:disabled {
+    background-color: #ffcdd2;
+    cursor: not-allowed;
+  }
+  
+  /* Estados */
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+  }
+  
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-left-color: #4285f4;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .no-periods {
+    padding: 30px;
+    text-align: center;
+    color: #666;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    margin: 20px 0;
+  }
+  
+  .error-message,
+  .success-message {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    position: relative;
+  }
+  
+  .error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    border-left: 4px solid #c62828;
+  }
+  
+  .success-message {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border-left: 4px solid #2e7d32;
+  }
+  
+  .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: inherit;
+    cursor: pointer;
+  }
+  
+  /* Modal de confirmação */
+  .confirm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .confirm-modal {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 450px;
+    overflow: hidden;
+    animation: modal-appear 0.3s ease;
+  }
+  
+  @keyframes modal-appear {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .confirm-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .confirm-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+  }
+  
+  .confirm-modal-content {
+    padding: 20px;
+  }
+  
+  .confirm-modal-content p {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .warning-text {
+    color: #e53935;
+    font-size: 14px;
+  }
+  
+  .confirm-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .cancel-button {
+    padding: 8px 16px;
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .cancel-button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .confirm-button {
+    padding: 8px 16px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .confirm-button:hover {
+    background-color: #d32f2f;
+  }
+  
+  /* Responsividade */
+  @media (max-width: 768px) {
+    .period-selection {
+      flex-direction: column;
+    }
+    
+    .periods-table {
+      font-size: 14px;
+    }
+    
+    .delete-button {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    
+    .confirm-modal {
+      width: 95%;
+    }
+  }
