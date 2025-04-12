@@ -205,6 +205,16 @@ const CategoryDetails = () => {
       const transactionsForCategory = [];
       let totalAmountForCategory = 0;
       
+      // Identificar mapeamentos específicos por ID de transação
+      const specificMappings = {};
+      
+      // Identificamos todos os mapeamentos específicos (para transações únicas)
+      Object.entries(categoryMappings).forEach(([key, mapping]) => {
+        if (mapping.isSpecificMapping && mapping.transactionId) {
+          specificMappings[mapping.transactionId] = mapping;
+        }
+      });
+      
       // Processar cada arquivo OFX
       for (const fileDoc of ofxFilesSnapshot.docs) {
         const fileData = fileDoc.data();
@@ -220,24 +230,40 @@ const CategoryDetails = () => {
             // Filtrar transações pela categoria selecionada
             transactions.forEach(transaction => {
               const normalizedDescription = transaction.description.trim().toLowerCase();
+              let isCategorized = false;
+              let mapping = null;
               
-              if (categoryMappings[normalizedDescription]) {
-                const mapping = categoryMappings[normalizedDescription];
+              // Primeiro verificar se existe um mapeamento específico para esta transação
+              if (specificMappings[transaction.id]) {
+                mapping = specificMappings[transaction.id];
                 
                 // Verificar se a transação pertence à categoria e grupo selecionados
-                if (
-                  mapping.groupName === selectedGroup && 
-                  mapping.categoryName === selectedCategoryName
-                ) {
-                  transactionsForCategory.push({
-                    ...transaction,
-                    date: new Date(transaction.date),
-                    fileId: fileDoc.id,
-                    fileName: fileData.fileName
-                  });
-                  
-                  totalAmountForCategory += transaction.amount;
+                if (mapping.groupName === selectedGroup && mapping.categoryName === selectedCategoryName) {
+                  isCategorized = true;
                 }
+              } 
+              // Se não existir mapeamento específico, verificar mapeamento normal
+              else if (categoryMappings[normalizedDescription]) {
+                mapping = categoryMappings[normalizedDescription];
+                
+                // Verificar se não é um mapeamento específico para outra transação
+                if (!mapping.isSpecificMapping) {
+                  // Verificar se pertence à categoria e grupo selecionados
+                  if (mapping.groupName === selectedGroup && mapping.categoryName === selectedCategoryName) {
+                    isCategorized = true;
+                  }
+                }
+              }
+              
+              if (isCategorized) {
+                transactionsForCategory.push({
+                  ...transaction,
+                  date: new Date(transaction.date),
+                  fileId: fileDoc.id,
+                  fileName: fileData.fileName
+                });
+                
+                totalAmountForCategory += transaction.amount;
               }
             });
           } catch (error) {

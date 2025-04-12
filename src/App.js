@@ -11,6 +11,7 @@ import DREReport from "./components/DRE/DREReport";
 import CategoryDetails from "./components/Categories/CategoryDetails";
 import Transactions from "./components/Transactions/Transactions";
 import NonCategorized from "./components/Transactions/NonCategorized";
+import EditCategorized from "./components/Transactions/EditCategorized";
 import "./App.css";
 
 // Rota protegida que requer autenticação
@@ -89,6 +90,14 @@ function App() {
           element={
             <ProtectedRoute>
               <NonCategorized />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/editar-categorizados" 
+          element={
+            <ProtectedRoute>
+              <EditCategorized />
             </ProtectedRoute>
           } 
         />
