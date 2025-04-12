@@ -10,6 +10,7 @@ import Dashboard from "./components/Dashboard/Dashboard";
 import DREReport from "./components/DRE/DREReport";
 import CategoryDetails from "./components/Categories/CategoryDetails";
 import Transactions from "./components/Transactions/Transactions";
+import NonCategorized from "./components/Transactions/NonCategorized";
 import "./App.css";
 
 // Rota protegida que requer autenticação
@@ -75,8 +76,6 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route path="*" element={<Navigate to="/login" />} />
-        
         <Route 
           path="/categorias" 
           element={
@@ -86,13 +85,14 @@ function App() {
           } 
         />
         <Route 
-          path="/dre" 
+          path="/não-categorizados" 
           element={
             <ProtectedRoute>
-              <DREReport />
+              <NonCategorized />
             </ProtectedRoute>
           } 
         />
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
   );

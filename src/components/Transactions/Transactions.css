@@ -637,3 +637,250 @@
   border-radius: 4px;
   margin-top: 5px;
 }
+
+/* Adicionar ao arquivo Transactions.css */
+
+.non-categorized-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.non-categorized-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.non-categorized-header h1 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 24px;
+}
+
+.transactions-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.transactions-count {
+  font-size: 14px;
+  color: #666;
+}
+
+.success-message {
+  padding: 12px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-left: 4px solid #2e7d32;
+}
+
+.save-mappings {
+  margin-top: 20px;
+}
+
+/* Estilo para transações recém categorizadas */
+.transaction-item.modified {
+  background-color: #f1f8e9;
+  transition: background-color 0.5s ease;
+}
+
+/* Melhoria no contador de itens */
+.transactions-count {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: #f5f5f5;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Melhoria na aparência da lista vazia */
+.no-transactions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px dashed #ccc;
+}
+
+.no-transactions p {
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 0;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .non-categorized-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .period-selector {
+    margin-top: 15px;
+    width: 100%;
+  }
+  
+  .period-selector select {
+    width: 100%;
+  }
+  
+  .transactions-filters {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .transactions-count {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* Adicionar ao arquivo Transactions.css */
+
+.non-categorized-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.non-categorized-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.non-categorized-header h1 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 24px;
+}
+
+.transactions-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.transactions-count {
+  font-size: 14px;
+  color: #666;
+}
+
+.success-message {
+  padding: 12px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-left: 4px solid #2e7d32;
+}
+
+.save-mappings {
+  margin-top: 20px;
+}
+
+/* Estilo para transações recém categorizadas */
+.transaction-item.modified {
+  background-color: #f1f8e9;
+  transition: background-color 0.5s ease;
+}
+
+/* Estilo para transações pendentes de salvamento */
+.transaction-item .pending-save {
+  position: relative;
+}
+
+.transaction-item .pending-save::after {
+  content: '•';
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  color: #ff9800;
+  font-size: 16px;
+  animation: pulse 1.5s infinite;
+}
+
+.pending-changes-notification {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #fff8e1;
+  border-left: 4px solid #ff9800;
+  color: #795548;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* Melhoria no contador de itens */
+.transactions-count {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: #f5f5f5;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Melhoria na aparência da lista vazia */
+.no-transactions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px dashed #ccc;
+}
+
+.no-transactions p {
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 0;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .non-categorized-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .period-selector {
+    margin-top: 15px;
+    width: 100%;
+  }
+  
+  .period-selector select {
+    width: 100%;
+  }
+  
+  .transactions-filters {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .transactions-count {
+    width: 100%;
+    text-align: center;
+  }
+}
