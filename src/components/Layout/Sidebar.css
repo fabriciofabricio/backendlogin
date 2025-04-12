@@ -1,194 +1,201 @@
 /* src/components/Layout/Sidebar.css */
 .sidebar {
-    width: 250px;
-    min-height: 100vh;
-    background-color: #4869e0;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
+  width: 250px;
+  min-height: 100vh;
+  background-color: #4869e0;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: white;
+  color: #4869e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+}
+
+.logo-text {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 1rem;
+}
+
+.menu-section {
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  sans-serif;
+}
+
+.menu-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-items li a {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: white;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.menu-items li a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-items li a.active {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-left: 3px solid white;
+}
+
+.menu-icon {
+  display: flex;
+  margin-right: 0.75rem;
+}
+
+.menu-text {
+  font-size: 0.875rem;
+}
+
+/* Card Styles for Financial Metrics */
+.card-container {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.fin-card {
+  flex: 0 0 18rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem;
+  border-left: 4px solid;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fin-card-receipts {
+  border-left-color: #4caf50;
+}
+
+.fin-card-costs {
+  border-left-color: #00acc1;
+}
+
+.fin-card-profit {
+  border-left-color: #2196f3;
+}
+
+.fin-card-result {
+  border-left-color: #ff9800;
+}
+
+.fin-card-uncategorized {
+  border-left-color: #9e9e9e;
+}
+
+.fin-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.fin-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.fin-card-description {
+  font-size: 0.75rem;
+  color: #777;
+}
+
+.fin-card-footer {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+.progress-bar {
+  height: 4px;
+  background-color: #eee;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.progress-text {
+  font-size: 0.75rem;
+  color: #777;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
   }
   
-  .sidebar-header {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .sidebar-logo {
-    display: flex;
-    align-items: center;
-  }
-  
-  .logo-icon {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    background-color: white;
-    color: #4869e0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 0.75rem;
-  }
-  
-  .logo-text {
-    font-size: 1.125rem;
-    font-weight: 600;
-  }
-  
-  .sidebar-content {
-    flex: 1;
-    overflow-y: auto;
-    padding-top: 1rem;
-  }
-  
-  .menu-section {
-    margin-bottom: 1.5rem;
-  }
-  
-  .section-title {
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  
-  .menu-items {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .logo-text, .menu-text, .section-title {
+    display: none;
   }
   
   .menu-items li a {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    color: white;
-    text-decoration: none;
-    transition: background-color 0.2s;
-  }
-  
-  .menu-items li a:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .menu-items li a.active {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-left: 3px solid white;
+    justify-content: center;
+    padding: 0.75rem 0;
   }
   
   .menu-icon {
-    display: flex;
-    margin-right: 0.75rem;
+    margin-right: 0;
   }
   
-  .menu-text {
-    font-size: 0.875rem;
+  .menu-items li a.active {
+    border-left: none;
+    border-left: 3px solid white;
   }
-  
-  /* Card Styles for Financial Metrics */
-  .card-container {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 1rem;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .fin-card {
-    flex: 0 0 18rem;
-    background-color: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 1.25rem;
-    border-left: 4px solid;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .fin-card-receipts {
-    border-left-color: #4caf50;
-  }
-  
-  .fin-card-costs {
-    border-left-color: #00acc1;
-  }
-  
-  .fin-card-profit {
-    border-left-color: #2196f3;
-  }
-  
-  .fin-card-result {
-    border-left-color: #ff9800;
-  }
-  
-  .fin-card-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #555;
-    margin-bottom: 0.5rem;
-  }
-  
-  .fin-card-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 0.25rem;
-  }
-  
-  .fin-card-description {
-    font-size: 0.75rem;
-    color: #777;
-  }
-  
-  .fin-card-footer {
-    margin-top: auto;
-    padding-top: 0.75rem;
-  }
-  
-  .progress-bar {
-    height: 4px;
-    background-color: #eee;
-    border-radius: 2px;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-  }
-  
-  .progress-fill {
-    height: 100%;
-    border-radius: 2px;
-  }
-  
-  .progress-text {
-    font-size: 0.75rem;
-    color: #777;
-  }
-  
-  /* Responsive Adjustments */
-  @media (max-width: 768px) {
-    .sidebar {
-      width: 70px;
-    }
-    
-    .logo-text, .menu-text, .section-title {
-      display: none;
-    }
-    
-    .menu-items li a {
-      justify-content: center;
-      padding: 0.75rem 0;
-    }
-    
-    .menu-icon {
-      margin-right: 0;
-    }
-    
-    .menu-items li a.active {
-      border-left: none;
-      border-left: 3px solid white;
-    }
-  }
+}

@@ -241,6 +241,213 @@
   margin: 20px auto 0;
 }
 
+/* Novas adições para o período */
+.period-selector-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 15px 20px;
+  margin-bottom: 20px;
+}
+
+.period-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.period-selector-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.period-dropdown {
+  display: flex;
+  align-items: center;
+}
+
+.period-dropdown label {
+  margin-right: 10px;
+  font-weight: 500;
+  color: #555;
+}
+
+.period-dropdown select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+/* Loading estados */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #4285f4;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+/* Mostrar o estado de erro */
+.error-message {
+  padding: 15px;
+  background-color: #ffebee;
+  color: #c62828;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border-left: 4px solid #c62828;
+}
+
+/* Para categorias na tabela de transações */
+.category-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+/* Categorias grid e seu estilo */
+.categories-section {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  margin-bottom: 25px;
+}
+
+/* Usando um seletor mais específico para não afetar o sidebar */
+.categories-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Usando um seletor mais específico para não afetar o sidebar */
+.categories-section .section-title {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.category-group {
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 15px;
+  border: 1px solid #eee;
+}
+
+.category-group-header {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-subgroup {
+  margin-top: 15px;
+}
+
+.subgroup-title {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+/* Transações section */
+.transactions-section {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  margin-bottom: 25px;
+}
+
+/* Usando um seletor mais específico para não afetar o sidebar */
+.transactions-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Usando um seletor mais específico para não afetar o sidebar */
+.transactions-section .section-title {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+}
+
+.transactions-table-container {
+  overflow-x: auto;
+}
+
+/* Estilos para os cards financeiros */
+.fin-card-receipts {
+  border-left-color: #4caf50;
+}
+
+.fin-card-costs {
+  border-left-color: #00acc1;
+}
+
+.fin-card-profit {
+  border-left-color: #2196f3;
+}
+
+.fin-card-result {
+  border-left-color: #ff9800;
+}
+
+.fin-card-uncategorized {
+  border-left-color: #9e9e9e;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .dashboard-header {
@@ -266,5 +473,35 @@
   .transactions-table {
     display: block;
     overflow-x: auto;
+  }
+
+  .period-selector-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .period-dropdown {
+    width: 100%;
+  }
+
+  .period-dropdown select {
+    flex: 1;
+    width: 100%;
+  }
+
+  .categories-section .section-header,
+  .transactions-section .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .edit-categories-button, .view-all-button {
+    width: 100%;
+  }
+
+  .categories-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -65,9 +65,22 @@ const DREReport = () => {
           uniquePeriods.sort((a, b) => b.value.localeCompare(a.value));
           setPeriods(uniquePeriods);
           
-          // Selecionar automaticamente o período mais recente
-          if (uniquePeriods.length > 0) {
-            setSelectedPeriod(uniquePeriods[0].value);
+          // Verificar se existe um período salvo no localStorage
+          let savedPeriod = localStorage.getItem('selectedPeriod');
+          let periodToUse;
+          
+          if (savedPeriod && uniquePeriods.find(p => p.value === savedPeriod)) {
+            // Se existir um período salvo e ele estiver disponível, usar ele
+            periodToUse = savedPeriod;
+          } else if (uniquePeriods.length > 0) {
+            // Caso contrário, usar o período mais recente
+            periodToUse = uniquePeriods[0].value;
+            // Salvar no localStorage
+            localStorage.setItem('selectedPeriod', periodToUse);
+          }
+          
+          if (periodToUse) {
+            setSelectedPeriod(periodToUse);
           }
           
           // Carregar a ordem das categorias
@@ -291,7 +304,12 @@ const DREReport = () => {
             <select
               id="period-select"
               value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
+              onChange={(e) => {
+                const period = e.target.value;
+                setSelectedPeriod(period);
+                // Salvar o período selecionado no localStorage
+                localStorage.setItem('selectedPeriod', period);
+              }}
               disabled={loading}
             >
               {periods.length === 0 ? (

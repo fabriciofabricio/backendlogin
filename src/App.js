@@ -8,6 +8,7 @@ import Register from "./components/Auth/Register";
 import CategorySelection from "./components/Auth/CategorySelection";
 import Dashboard from "./components/Dashboard/Dashboard";
 import DREReport from "./components/DRE/DREReport";
+import CategoryDetails from "./components/Categories/CategoryDetails";
 import Transactions from "./components/Transactions/Transactions";
 import "./App.css";
 
@@ -75,6 +76,23 @@ function App() {
           } 
         />
         <Route path="*" element={<Navigate to="/login" />} />
+        
+        <Route 
+          path="/categorias" 
+          element={
+            <ProtectedRoute>
+              <CategoryDetails />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dre" 
+          element={
+            <ProtectedRoute>
+              <DREReport />
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
     </Router>
   );
