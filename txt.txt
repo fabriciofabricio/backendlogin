@@ -1,97 +1,61 @@
-const financialCategories = {
-    "RECEITA BRUTA": [
-      "Dinheiro",
-      "Cheque",
-      "Boleto",
-      "Transferência",
-      "Cartão / Pix / TED",
-      "Ifood",
-      "Outras Entradas"
-    ],
-    "(-) DEDUÇÕES DA RECEITA": [
-      "ISS",
-      "ICMS",
-      "PIS/COFINS"
-    ],
-    "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS": [
-      "Resgate de Aplicação",
-      "Empréstimo",
-      "Aporte de Sócio"
-    ],
-    "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)": [
-      "Insumos e ingredientes",
-      "Doces",
-      "Carnes",
-      "Bebidas",
-      "Vinho",
-      "Chopp",
-      "Hortifrúti",
-      "Café"
-    ],
-    "(-) DESPESAS OPERACIONAIS": [
-        "DAS",
-        "Contabilidade",
-        "Consultoria / Assessoria",
-        "Advogado",
-        "Segurança",
-        "Sistema",
-        "Despesa Bancária",
-        "Despesa Financeira",
-        "Correio / Cartório",
-        "Outras Despesas ADM",
-        "Aluguel",
-        "Condomínio",
-        "Energia Elétrica",
-        "Gás",
-        "Água / Esgoto (Sanepar)",
-        "Internet",
-        "Telefone e TV a Cabo",
-        "Estacionamento",
-        "Equipamentos",
-        "Informática",
-        "Predial",
-        "Móveis e Utensílios",
-        "Dedetização",
-        "Propaganda e Publicidade",
-        "Serviços Gráficos",
-        "Material de Escritório",
-        "Embalagem / Descartáveis",
-        "Limpeza / Higiene",
-        "Materiais de Reposição",
-        "Salário",
-        "Adiantamento",
-        "Free-lance / Taxa",
-        "13º Salário",
-        "Férias + Abono",
-        "Rescisão Contratual",
-        "Vale Transporte",
-        "Exame Médico",
-        "FGTS",
-        "Contribuição Sindical",
-        "Refeição Funcionário",
-        "INSS",
-        "Treinamento",
-        "Uniforme",
-        "Farmácia",
-        "Artístico",
-        "Outras Despesas RH",
-        "Locação de Equipamentos",
-        "Aquisição de Equipamentos"
-    ],
-    "(-) DESPESAS COM SÓCIOS": [
-      "Despesas de Sócios",
-      "Pró-labore",
-      "Imposto de Renda Pessoa Física"
-    ],
-    "(-) INVESTIMENTOS": [
-      "Obras e Instalações",
-      "Informática",
-      "Equipamentos / Aplicações em Fundos"
-    ]
-  };
+Checklist de Implementação para o Frontend
+Aqui está um checklist detalhado das coisas que ainda precisam ser implementadas no frontend para torná-lo totalmente funcional:
+1. Integração de Links da Sidebar
 
-  DTPOSTED → Data da transação
+ Detalhes por Categoria - Criar esta página e rota ou redirecionar para uma funcionalidade existente
+ Itens não Categorizados - Implementar esta página ou integrar com filtro na página de Transações
+ Gerenciador de Períodos - Implementar esta página ou componente
+ Exportar DRE - Adicionar funcionalidade de exportação (PDF, Excel, etc.)
+ Salvar Categorias - Redirecionar para a página de seleção de categorias existente
 
-TRNAMT → Valor da transação
+2. Dados Dinâmicos
 
-MEMO → Descrição da transação.
+ Cards Financeiros - Substituir valores estáticos por dados reais do backend:
+
+ Receitas - conectar com cálculos reais de soma de receitas
+ Custos Diretos - implementar cálculos reais
+ Lucro Bruto - implementar cálculos reais
+ Resultado Final - implementar cálculos reais
+
+
+ Porcentagens - Calcular porcentagens dinamicamente com base nos valores reais
+
+3. Funcionalidades de Botões
+
+ Botão "Editar Categorias" - Conectar com a página de seleção de categorias
+ Botão "Ver Todas as Transações" - Conectar com a página de transações
+ Botão "Sair" - Verificar se a função de logout está funcionando corretamente
+
+4. Integração de Páginas Existentes com o Novo Layout
+
+ DREReport.js - Finalizar a integração com MainLayout
+ Transactions.js - Integrar com MainLayout
+ CategorySelection.js - Integrar com MainLayout (se necessário)
+
+5. Responsividade e UX
+
+ Menu Mobile - Adicionar botão hamburger para mostrar/esconder sidebar em dispositivos móveis
+ Layout Responsivo - Testar em diferentes dispositivos e ajustar conforme necessário
+ Feedback Visual - Adicionar feedback ao usuário durante operações de carregamento
+
+6. Segurança e Navegação
+
+ Proteção de Rotas - Garantir que todas as rotas estejam protegidas corretamente
+ Tratamento de Erros - Adicionar tratamento de erros e mensagens amigáveis ao usuário
+ Tratamento de Links Inexistentes - Implementar fallbacks para quando o usuário clicar em um recurso ainda não disponível
+
+7. Estado de Carregamento
+
+ Indicadores de Carregamento - Adicionar estados de carregamento (loading spinners) em todas as operações assíncronas
+ Estados Vazios - Tratar corretamente estados onde não há dados para exibir
+
+8. Implementação de Novas Funcionalidades
+
+ Página de "Detalhes por Categoria" - Criar visualização detalhada de cada categoria
+ Gerenciador de Períodos - Implementar interface para selecionar e gerenciar períodos financeiros
+ Funcionalidade de Exportação - Implementar exportação dos relatórios
+
+9. Ajustes Visuais Específicos
+
+ Consistência de Cores - Garantir que todas as cores estejam consistentes com a identidade visual
+ Tamanhos de Fonte - Ajustar tamanhos de fonte para melhor legibilidade em todos os dispositivos

@@ -1,21 +1,16 @@
 // src/components/Dashboard/Dashboard.js
 import React, { useState, useEffect } from "react";
 import { auth, db } from "../../firebase/config";
-import { signOut } from "firebase/auth";
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
-import Transactions from "../Transactions/Transactions";
+import MainLayout from "../Layout/MainLayout";
 import "./Dashboard.css";
 
-// Componente principal do Dashboard
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [categoriesData, setCategoriesData] = useState(null);
   const [recentTransactions, setRecentTransactions] = useState([]);
-  const [activeTab, setActiveTab] = useState("categories"); // 'categories', 'transactions' ou 'dre'
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -63,20 +58,6 @@ const Dashboard = () => {
 
     fetchUserData();
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/login");
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-    }
-  };
-
-  // Função para navegar para a página do DRE
-  const navigateToDRE = () => {
-    navigate("/dre");
-  };
 
   // Função para organizar as categorias em grupos e subgrupos
   const organizeCategories = () => {
@@ -148,182 +129,160 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return <div className="loading">Carregando...</div>;
+    return (
+      <MainLayout>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Carregando dados...</p>
+        </div>
+      </MainLayout>
+    );
   }
 
   const { groupedCategories, totalCategories } = organizeCategories();
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>Dashboard</h1>
-        <div className="user-info">
-          <span>Olá, {user?.displayName || "Usuário"}</span>
-          <button className="logout-button" onClick={handleLogout}>
-            Sair
-          </button>
-        </div>
-      </div>
-
+    <MainLayout userName={user?.displayName || "Usuário"}>
       {error && (
-        <div className="error-message" style={{ 
-          padding: '10px', 
-          backgroundColor: '#ffebee', 
-          color: '#c62828',
-          borderRadius: '4px',
-          marginBottom: '20px' 
-        }}>
+        <div className="error-message">
           {error}
         </div>
       )}
 
-      <div className="dashboard-tabs">
-        <button 
-          className={`tab-button ${activeTab === 'categories' ? 'active' : ''}`}
-          onClick={() => setActiveTab('categories')}
-        >
-          Categorias
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'transactions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('transactions')}
-        >
-          Transações
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'dre' ? 'active' : ''}`}
-          onClick={() => navigateToDRE()}
-        >
-          DRE
-        </button>
+      {/* Cards Financeiros */}
+      <div className="card-container">
+        <div className="fin-card fin-card-receipts">
+          <div className="fin-card-title">RECEITAS</div>
+          <div className="fin-card-value">R$ 24.850,00</div>
+          <div className="fin-card-description">Total de receitas no período</div>
+          <div className="fin-card-footer">
+            <div className="empty-space"></div>
+          </div>
+        </div>
+
+        <div className="fin-card fin-card-costs">
+          <div className="fin-card-title">CUSTOS DIRETOS</div>
+          <div className="fin-card-value">R$ 12.430,00</div>
+          <div className="fin-card-description">Total de custos diretos</div>
+          <div className="fin-card-footer">
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: '50%', backgroundColor: '#00acc1' }}></div>
+            </div>
+            <div className="progress-text">50% das receitas</div>
+          </div>
+        </div>
+
+        <div className="fin-card fin-card-profit">
+          <div className="fin-card-title">LUCRO BRUTO</div>
+          <div className="fin-card-value">R$ 12.420,00</div>
+          <div className="fin-card-description">Receitas - Custos Diretos</div>
+          <div className="fin-card-footer">
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: '50%', backgroundColor: '#2196f3' }}></div>
+            </div>
+            <div className="progress-text">50% das receitas</div>
+          </div>
+        </div>
+
+        <div className="fin-card fin-card-result">
+          <div className="fin-card-title">RESULTADO FINAL</div>
+          <div className="fin-card-value">R$ 10.850,00</div>
+          <div className="fin-card-description">Lucro Bruto - Despesas</div>
+          <div className="fin-card-footer">
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: '44%', backgroundColor: '#ff9800' }}></div>
+            </div>
+            <div className="progress-text">44% das receitas</div>
+          </div>
+        </div>
       </div>
 
-      {activeTab === 'categories' ? (
-        <div className="dashboard-content">
-          <div className="dashboard-card">
-            <h2>Suas Categorias Financeiras</h2>
-            
-            {totalCategories === 0 ? (
-              <div className="no-categories">
-                <p>Você ainda não selecionou nenhuma categoria.</p>
-                <button 
-                  className="select-categories-button"
-                  onClick={() => navigate("/select-categories")}
-                >
-                  Selecionar Categorias
-                </button>
-              </div>
-            ) : (
-              <>
-                <p className="categories-count">
-                  Você selecionou {totalCategories} categorias.
-                </p>
-                
-                <div className="categories-container">
-                  {Object.entries(groupedCategories)
-                    .sort(([, dataA], [, dataB]) => {
-                      // Ordenar pelo campo order que adicionamos
-                      return dataA.order - dataB.order;
-                    })
-                    .map(([groupName, groupData], index) => (
-                      <div key={index} className="category-group">
-                        <h3>{groupName}</h3>
-                        
-                        {/* Categorias normais (sem subgrupo) */}
-                        {groupData.normalCategories.length > 0 && (
-                          <ul className="category-list">
-                            {groupData.normalCategories.map((category, catIndex) => (
-                              <li key={catIndex} className="category-item">{category}</li>
-                            ))}
-                          </ul>
-                        )}
-                        
-                        {/* Categorias com subgrupos */}
-                        {Object.entries(groupData.subGroups).map(([subGroupName, categories], subIndex) => (
-                          <div key={subIndex} className="category-subgroup-section">
-                            <h4>{subGroupName}</h4>
-                            <ul className="category-list">
-                              {categories.map((category, catIndex) => (
-                                <li key={catIndex} className="category-item">{category}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                </div>
-                
-                <div className="edit-categories">
-                  <button 
-                    className="edit-categories-button"
-                    onClick={() => navigate("/select-categories")}
-                  >
-                    Editar Categorias
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {recentTransactions.length > 0 && (
-            <div className="dashboard-card">
-              <h2>
-                Transações Recentes
-                <button 
-                  className="view-dre-button"
-                  onClick={navigateToDRE}
-                  style={{
-                    float: 'right',
-                    padding: '6px 12px',
-                    backgroundColor: '#3498db',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Ver DRE
-                </button>
-              </h2>
-              <div className="recent-transactions">
-                <table className="transactions-table">
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Descrição</th>
-                      <th>Categoria</th>
-                      <th>Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentTransactions.map((transaction) => (
-                      <tr key={transaction.id}>
-                        <td>{formatDate(transaction.date)}</td>
-                        <td>{transaction.description}</td>
-                        <td>{transaction.category}</td>
-                        <td className={transaction.amount >= 0 ? 'amount-positive' : 'amount-negative'}>
-                          {formatCurrency(transaction.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                
-                <button 
-                  className="view-all-button"
-                  onClick={() => setActiveTab('transactions')}
-                >
-                  Ver Todas as Transações
-                </button>
-              </div>
-            </div>
-          )}
+      {/* Categorias */}
+      <div className="categories-section">
+        <div className="section-header">
+          <h2 className="section-title">Suas Categorias Financeiras</h2>
+          <button className="edit-categories-button">
+            Editar Categorias
+          </button>
         </div>
-      ) : (
-        <Transactions />
+        
+        <p className="categories-count">
+          Você selecionou {totalCategories} categorias.
+        </p>
+        
+        <div className="categories-grid">
+          {Object.entries(groupedCategories)
+            .sort(([, dataA], [, dataB]) => {
+              return dataA.order - dataB.order;
+            })
+            .map(([groupName, groupData], index) => (
+              <div key={index} className="category-group">
+                <div className="category-group-header">{groupName}</div>
+                
+                {/* Categorias normais (sem subgrupo) */}
+                {groupData.normalCategories.length > 0 && (
+                  <ul className="category-list">
+                    {groupData.normalCategories.map((category, catIndex) => (
+                      <li key={catIndex} className="category-item">{category}</li>
+                    ))}
+                  </ul>
+                )}
+                
+                {/* Categorias com subgrupos */}
+                {Object.entries(groupData.subGroups).map(([subGroupName, categories], subIndex) => (
+                  <div key={subIndex} className="category-subgroup">
+                    <h4 className="subgroup-title">{subGroupName}</h4>
+                    <ul className="category-list">
+                      {categories.map((category, catIndex) => (
+                        <li key={catIndex} className="category-item">{category}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ))}
+        </div>
+      </div>
+
+      {/* Transações recentes */}
+      {recentTransactions.length > 0 && (
+        <div className="transactions-section">
+          <div className="section-header">
+            <h2 className="section-title">Transações Recentes</h2>
+            <button className="view-all-button">
+              Ver Todas as Transações
+            </button>
+          </div>
+          
+          <div className="transactions-table-container">
+            <table className="transactions-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentTransactions.map((transaction) => (
+                  <tr key={transaction.id}>
+                    <td>{formatDate(transaction.date)}</td>
+                    <td>{transaction.description}</td>
+                    <td>
+                      <span className="category-badge">{transaction.category}</span>
+                    </td>
+                    <td className={transaction.amount >= 0 ? 'amount-positive' : 'amount-negative'}>
+                      {formatCurrency(transaction.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
-    </div>
+    </MainLayout>
   );
 };
 

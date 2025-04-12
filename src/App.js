@@ -8,6 +8,8 @@ import Register from "./components/Auth/Register";
 import CategorySelection from "./components/Auth/CategorySelection";
 import Dashboard from "./components/Dashboard/Dashboard";
 import DREReport from "./components/DRE/DREReport";
+import Transactions from "./components/Transactions/Transactions";
+import "./App.css";
 
 // Rota protegida que requer autenticação
 const ProtectedRoute = ({ children }) => {
@@ -24,7 +26,7 @@ const ProtectedRoute = ({ children }) => {
   }, []);
 
   if (loading) {
-    return <div>Carregando...</div>;
+    return <div className="app-loading">Carregando...</div>;
   }
 
   if (!user) {
@@ -61,6 +63,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DREReport />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/transactions" 
+          element={
+            <ProtectedRoute>
+              <Transactions />
             </ProtectedRoute>
           } 
         />
