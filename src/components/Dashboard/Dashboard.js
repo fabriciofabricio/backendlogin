@@ -156,12 +156,26 @@ const Dashboard = () => {
         lucroBruto: 0,
         resultadoFinal: 0,
         despesasOperacionais: 0,
+        outrasReceitas: 0,
+        despesasSocios: 0,
+        investimentos: 0,
+        naoCategorizado: 0,
         totalTransactions: 0
       };
       
       // Buscar categorias e mapeamentos necessários para o processamento
       const categoryMappingsDoc = await getDoc(doc(db, "categoryMappings", auth.currentUser.uid));
       const categoryMappings = categoryMappingsDoc.exists() ? categoryMappingsDoc.data().mappings || {} : {};
+      
+      // Identificar mapeamentos específicos por ID de transação
+      const specificMappings = {};
+      
+      // Extrair mapeamentos específicos (para transações únicas)
+      Object.entries(categoryMappings).forEach(([key, mapping]) => {
+        if (mapping.isSpecificMapping && mapping.transactionId) {
+          specificMappings[mapping.transactionId] = mapping;
+        }
+      });
       
       // Buscar arquivos OFX do período selecionado
       const ofxFilesQuery = query(
@@ -186,37 +200,78 @@ const Dashboard = () => {
             const transactions = parseResult.transactions;
             
             // Somar todas as transações para o resultado final
-            transactions.forEach(transaction => {
+            for (const transaction of transactions) {
               totalValue += transaction.amount;
               
               // Processar categorias para outros dados financeiros
               const normalizedDescription = transaction.description.trim().toLowerCase();
+              let mainCategory = null;
+              let isCategorized = false;
               
-              if (categoryMappings[normalizedDescription]) {
+              // Primeiro verificar se existe um mapeamento específico para esta transação
+              if (specificMappings[transaction.id]) {
+                const specificMapping = specificMappings[transaction.id];
+                mainCategory = specificMapping.groupName;
+                isCategorized = true;
+              } 
+              // Se não existir mapeamento específico, verificar mapeamento normal
+              else if (categoryMappings[normalizedDescription]) {
                 const mapping = categoryMappings[normalizedDescription];
-                const mainCategory = mapping.groupName;
-                
-                // Categorizar transação com base no mapeamento
+                if (!mapping.isSpecificMapping) { // Não é um mapeamento específico para outra transação
+                  mainCategory = mapping.groupName;
+                  isCategorized = true;
+                }
+              }
+              
+              // Categorizar transação com base no mapeamento
+              if (isCategorized) {
                 if (mainCategory === "RECEITA") {
                   initialData.receitaBruta += transaction.amount;
                 } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
                   initialData.custosDiretos += Math.abs(transaction.amount);
                 } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
                   initialData.despesasOperacionais += Math.abs(transaction.amount);
+                } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
+                  initialData.outrasReceitas += transaction.amount;
+                } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
+                  initialData.despesasSocios += Math.abs(transaction.amount);
+                } else if (mainCategory === "(-) INVESTIMENTOS") {
+                  initialData.investimentos += Math.abs(transaction.amount);
                 }
+              } else {
+                // Transação não categorizada - incluir no valor não categorizado
+                initialData.naoCategorizado += transaction.amount;
               }
-            });
+            }
           } catch (error) {
             console.error(`Erro ao processar arquivo OFX ${fileData.fileName}:`, error);
           }
         }
       }
       
-      // Calcular lucro bruto e definir resultado final
+      // Calcular valores derivados conforme DRE
       initialData.lucroBruto = initialData.receitaBruta - initialData.custosDiretos;
+      const resultadoOperacional = initialData.lucroBruto - initialData.despesasOperacionais + initialData.outrasReceitas;
+      const resultadoAntesIR = resultadoOperacional - initialData.despesasSocios;
       
-      // Definir resultado final como a soma total de todas as transações
-      initialData.resultadoFinal = totalValue;
+      // Incluir transações não categorizadas no resultado final (mesma lógica do DRE)
+      initialData.resultadoFinal = resultadoAntesIR - initialData.investimentos + initialData.naoCategorizado;
+      
+      // Adicionar log para depuração
+      console.log("Valores financeiros calculados:", {
+        periodo: period,
+        receitaBruta: initialData.receitaBruta,
+        custosDiretos: initialData.custosDiretos,
+        lucroBruto: initialData.lucroBruto,
+        despesasOperacionais: initialData.despesasOperacionais,
+        outrasReceitas: initialData.outrasReceitas,
+        resultadoOperacional: resultadoOperacional,
+        despesasSocios: initialData.despesasSocios,
+        resultadoAntesIR: resultadoAntesIR,
+        investimentos: initialData.investimentos,
+        naoCategorizado: initialData.naoCategorizado,
+        resultadoFinal: initialData.resultadoFinal,
+      });
       
       // Calcular percentuais
       if (initialData.receitaBruta > 0) {
@@ -455,7 +510,7 @@ const Dashboard = () => {
               formatCurrency(financialData.resultadoFinal)
             )}
           </div>
-          <div className="fin-card-description">Soma total das transações</div>
+          <div className="fin-card-description">Resultado líquido do período</div>
           <div className="fin-card-footer">
             <div className="progress-bar">
               <div 

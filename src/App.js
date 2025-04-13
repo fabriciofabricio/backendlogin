@@ -14,6 +14,7 @@ import NonCategorized from "./components/Transactions/NonCategorized";
 import EditCategorized from "./components/Transactions/EditCategorized";
 import PeriodManager from "./components/Periods/PeriodManager";
 import Settings from "./components/Settings/Settings";
+import Charts from "./components/Charts/Charts";
 import "./App.css";
 
 // Rota protegida que requer autenticação
@@ -68,6 +69,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DREReport />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/charts" 
+          element={
+            <ProtectedRoute>
+              <Charts />
             </ProtectedRoute>
           } 
         />

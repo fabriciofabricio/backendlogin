@@ -63,6 +63,19 @@ const Sidebar = () => {
               </NavLink>
             </li>
             <li>
+              <NavLink to="/charts" className={({ isActive }) => isActive ? "active" : ""}>
+                <span className="menu-icon">
+                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
+                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                    <path d="M9 6l3 3 3-3"></path>
+                  </svg>
+                </span>
+                <span className="menu-text">Gráficos</span>
+              </NavLink>
+            </li>
+            <li>
               <NavLink to="/não-categorizados" className={({ isActive }) => isActive ? "active" : ""}>
                 <span className="menu-icon">
                   <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
