@@ -1,15 +1,10 @@
 // src/components/Settings/Settings.js
 import React, { useState, useEffect } from "react";
 import { auth, db } from "../../firebase/config";
-import { 
-  doc, 
-  getDoc,
-  updateDoc, 
-  serverTimestamp 
-} from "firebase/firestore";
-import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { Link } from "react-router-dom";
 import MainLayout from "../Layout/MainLayout";
+import AccountForm from "./AccountForm";
 import "./Settings.css";
 
 const Settings = () => {
@@ -19,19 +14,6 @@ const Settings = () => {
   const [categoriesData, setCategoriesData] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  
-  // Estados para o formulário da conta
-  const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
-  
-  // Estado para armazenar informações da senha atual para reautenticação
-  const [reAuthPassword, setReAuthPassword] = useState("");
-  const [showReAuth, setShowReAuth] = useState(false);
-  
-  const navigate = useNavigate();
 
   // Carregar dados do usuário e categorias
   useEffect(() => {
@@ -42,8 +24,6 @@ const Settings = () => {
         if (auth.currentUser) {
           const currentUser = auth.currentUser;
           setUser(currentUser);
-          setDisplayName(currentUser.displayName || "");
-          setEmail(currentUser.email || "");
           
           // Carregar categorias do usuário
           await loadUserCategories(currentUser.uid);
@@ -71,97 +51,6 @@ const Settings = () => {
     } catch (error) {
       console.error("Erro ao carregar categorias do usuário:", error);
       setError("Não foi possível carregar suas categorias.");
-    }
-  };
-
-  // Função para salvar mudanças de perfil
-  const handleSaveProfile = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      setSuccess("");
-      
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error("Usuário não autenticado.");
-      }
-      
-      // Atualizar displayName no Firestore (se implementado)
-      const userDocRef = doc(db, "users", currentUser.uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        await updateDoc(userDocRef, {
-          displayName: displayName,
-          updatedAt: serverTimestamp()
-        });
-      }
-      
-      // Atualizar email (requer reautenticação)
-      if (email !== currentUser.email) {
-        if (!reAuthPassword) {
-          setShowReAuth(true);
-          return;
-        }
-        
-        try {
-          // Reautenticar usuário
-          const credential = EmailAuthProvider.credential(
-            currentUser.email,
-            reAuthPassword
-          );
-          
-          await reauthenticateWithCredential(currentUser, credential);
-          
-          // Atualizar email
-          await updateEmail(currentUser, email);
-          
-          setShowReAuth(false);
-          setReAuthPassword("");
-        } catch (authError) {
-          console.error("Erro de autenticação:", authError);
-          setError("Senha atual incorreta ou erro ao atualizar email.");
-          return;
-        }
-      }
-      
-      // Atualizar senha (se fornecida)
-      if (newPassword && currentPassword) {
-        try {
-          // Reautenticar usuário
-          const credential = EmailAuthProvider.credential(
-            currentUser.email,
-            currentPassword
-          );
-          
-          await reauthenticateWithCredential(currentUser, credential);
-          
-          // Atualizar senha
-          await updatePassword(currentUser, newPassword);
-          
-          // Limpar campos de senha
-          setNewPassword("");
-          setCurrentPassword("");
-          setShowPasswordChange(false);
-        } catch (authError) {
-          console.error("Erro ao alterar senha:", authError);
-          setError("Senha atual incorreta ou erro ao atualizar senha.");
-          return;
-        }
-      }
-      
-      setSuccess("Perfil atualizado com sucesso!");
-      
-      // Limpar mensagem após 3 segundos
-      setTimeout(() => {
-        setSuccess("");
-      }, 3000);
-      
-    } catch (error) {
-      console.error("Erro ao salvar perfil:", error);
-      setError(`Erro ao atualizar perfil: ${error.message}`);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -221,138 +110,6 @@ const Settings = () => {
     };
   };
 
-  // Navegar para a página de seleção de categorias
-  const handleEditCategories = () => {
-    navigate("/select-categories");
-  };
-  
-  // Componente para a aba de Conta
-  const AccountTab = () => (
-    <div className="settings-tab-content">
-      <h3>Informações da Conta</h3>
-      
-      <div className="settings-form">
-        <div className="form-group">
-          <label htmlFor="displayName">Nome</label>
-          <input
-            type="text"
-            id="displayName"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            disabled={loading}
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={loading}
-          />
-        </div>
-        
-        {showPasswordChange ? (
-          <>
-            <div className="form-group">
-              <label htmlFor="currentPassword">Senha Atual</label>
-              <input
-                type="password"
-                id="currentPassword"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="newPassword">Nova Senha</label>
-              <input
-                type="password"
-                id="newPassword"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            
-            <div className="password-actions">
-              <button 
-                className="cancel-button"
-                onClick={() => {
-                  setShowPasswordChange(false);
-                  setCurrentPassword("");
-                  setNewPassword("");
-                }}
-                disabled={loading}
-              >
-                Cancelar
-              </button>
-            </div>
-          </>
-        ) : (
-          <button 
-            className="show-password-button"
-            onClick={() => setShowPasswordChange(true)}
-            disabled={loading}
-          >
-            Alterar Senha
-          </button>
-        )}
-        
-        <button 
-          className="save-button"
-          onClick={handleSaveProfile}
-          disabled={loading}
-        >
-          {loading ? "Salvando..." : "Salvar Alterações"}
-        </button>
-      </div>
-      
-      {/* Modal de reautenticação (se necessário para alterar email) */}
-      {showReAuth && (
-        <div className="reauth-modal-overlay">
-          <div className="reauth-modal">
-            <h4>Verifique sua Identidade</h4>
-            <p>Para alterar seu email, precisamos confirmar sua senha atual.</p>
-            
-            <div className="form-group">
-              <label htmlFor="reAuthPassword">Senha Atual</label>
-              <input
-                type="password"
-                id="reAuthPassword"
-                value={reAuthPassword}
-                onChange={(e) => setReAuthPassword(e.target.value)}
-              />
-            </div>
-            
-            <div className="reauth-buttons">
-              <button 
-                className="cancel-button"
-                onClick={() => {
-                  setShowReAuth(false);
-                  setReAuthPassword("");
-                  setEmail(user.email); // Reverter para email original
-                }}
-              >
-                Cancelar
-              </button>
-              
-              <button 
-                className="confirm-button"
-                onClick={handleSaveProfile}
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-  
   // Componente para a aba de Categorias
   const CategoriesTab = () => {
     const { groupedCategories, totalCategories } = organizeCategories();
@@ -361,12 +118,9 @@ const Settings = () => {
       <div className="settings-tab-content">
         <div className="categories-header">
           <h3>Suas Categorias Financeiras</h3>
-          <button 
-            className="edit-categories-button"
-            onClick={handleEditCategories}
-          >
+          <Link to="/select-categories" className="edit-categories-button">
             Editar Categorias
-          </button>
+          </Link>
         </div>
         
         <p className="categories-count">
@@ -453,7 +207,13 @@ const Settings = () => {
             </div>
           ) : (
             <>
-              {activeTab === 'account' && <AccountTab />}
+              {activeTab === 'account' && (
+                <AccountForm 
+                  user={user} 
+                  setError={setError} 
+                  setSuccess={setSuccess} 
+                />
+              )}
               {activeTab === 'categories' && <CategoriesTab />}
             </>
           )}

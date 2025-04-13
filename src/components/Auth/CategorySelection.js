@@ -13,10 +13,10 @@ const CategorySelection = () => {
   const [saving, setSaving] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState({});
   const [currentStep, setCurrentStep] = useState(0);
-  // Nova variável de estado para o modelo de negócio
+  // Variável de estado para o modelo de negócio
   const [businessModel, setBusinessModel] = useState("");
 
-  // Estrutura de categorias financeiras com ordem explícita
+  // Obter a estrutura de categorias financeiras com base no modelo de negócio
   const getFinancialCategories = () => {
     const baseCategories = {
       "1. RECEITA": {
@@ -187,7 +187,10 @@ const CategorySelection = () => {
     }
   }, [currentStep]);
 
+  // Efeito para monitorar mudanças na autenticação e carregar dados do usuário
   useEffect(() => {
+    setLoading(true);
+    
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
@@ -204,13 +207,15 @@ const CategorySelection = () => {
   // Função para carregar as categorias do usuário do Firestore
   const loadUserCategories = async (userId) => {
     try {
+      // Fazer a consulta ao Firestore para obter as categorias do usuário
       const userCategoriesDoc = await getDoc(doc(db, "userCategories", userId));
       
       if (userCategoriesDoc.exists()) {
         const data = userCategoriesDoc.data();
         
+        // Importante: Carregar as categorias do Firestore, não do cache
         if (data.categories) {
-          console.log("Categorias carregadas:", data.categories);
+          console.log("Categorias carregadas do Firestore:", data.categories);
           setSelectedCategories(data.categories);
         }
 
@@ -235,6 +240,7 @@ const CategorySelection = () => {
     setCurrentStep(1);
   };
 
+  // Função para alternar o estado de seleção de uma categoria
   const handleCategoryToggle = (category) => {
     // Calculamos o índice do grupo adequado porque agora temos a etapa 0 para modelo de negócio
     const categoryIndex = currentStep - 1;
@@ -252,6 +258,7 @@ const CategorySelection = () => {
     });
   };
 
+  // Função para salvar categorias no Firestore
   const saveCategories = async () => {
     if (!user) {
       console.error("Usuário não autenticado");
@@ -317,6 +324,7 @@ const CategorySelection = () => {
     }
   };
 
+  // Funções de navegação
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep(prevStep => prevStep + 1);
@@ -329,6 +337,13 @@ const CategorySelection = () => {
     if (currentStep > 0) {
       setCurrentStep(prevStep => prevStep - 1);
     }
+  };
+
+  // Função para verificar se uma categoria está selecionada, baseado nos dados do Firebase
+  const isCategorySelected = (group, category) => {
+    const displayName = financialCategories[group].displayName;
+    const path = `${displayName}.${category}`;
+    return !!selectedCategories[path];
   };
 
   if (loading) {
@@ -435,18 +450,22 @@ const CategorySelection = () => {
         
         <div className="categories-container">
           <div className="category-list single-page">
-            {currentCategories.map((category, index) => (
-              <div key={index} className="category-item">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={!!selectedCategories[`${financialCategories[currentGroup].displayName}.${category}`]}
-                    onChange={() => handleCategoryToggle(category)}
-                  />
-                  {category}
-                </label>
-              </div>
-            ))}
+            {currentCategories.map((category, index) => {
+              // Para cada categoria, verificamos no estado selectedCategories carregado do Firebase
+              const isSelected = isCategorySelected(currentGroup, category);
+              return (
+                <div key={index} className="category-item">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleCategoryToggle(category)}
+                    />
+                    {category}
+                  </label>
+                </div>
+              );
+            })}
           </div>
         </div>
 

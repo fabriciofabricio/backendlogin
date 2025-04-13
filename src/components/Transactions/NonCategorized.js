@@ -22,6 +22,7 @@ const NonCategorized = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [autoMappedTransactions, setAutoMappedTransactions] = useState([]);
   const transactionsPerPage = 10;
 
   // Carregar usuário, períodos e categorias
@@ -170,6 +171,66 @@ const NonCategorized = () => {
     }
   }, [selectedPeriod, categoryMappings]);
 
+  // Verificar se existe alguma categorização automática que precisa ser salva
+  useEffect(() => {
+    if (autoMappedTransactions.length > 0) {
+      saveAutoMappedTransactions();
+    }
+  }, [autoMappedTransactions]);
+
+  // Salvar categorizações automáticas no Firestore
+  const saveAutoMappedTransactions = async () => {
+    try {
+      if (!auth.currentUser || autoMappedTransactions.length === 0) return;
+      
+      console.log("Salvando categorizações automáticas:", autoMappedTransactions.length);
+      
+      // Atualizar o mapeamento de categorias
+      const updatedMappings = { ...categoryMappings };
+      
+      autoMappedTransactions.forEach(transaction => {
+        const normalizedDescription = transaction.description.trim().toLowerCase();
+        
+        // Criar mapeamento específico para o ID desta transação
+        const uniqueKey = `${normalizedDescription}_${transaction.id}`;
+        
+        updatedMappings[uniqueKey] = {
+          categoryName: transaction.category,
+          categoryPath: transaction.categoryPath,
+          groupName: transaction.groupName || transaction.categoryPath.split('.')[0],
+          lastUsed: new Date(),
+          originalDescription: normalizedDescription,
+          isSpecificMapping: true,
+          transactionId: transaction.id,
+          autoMapped: true
+        };
+      });
+      
+      // Salvar no Firestore
+      const categoryMappingsRef = doc(db, "categoryMappings", auth.currentUser.uid);
+      await updateDoc(categoryMappingsRef, {
+        mappings: updatedMappings,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Atualizar estado local
+      setCategoryMappings(updatedMappings);
+      
+      // Limpar lista de transações automáticas pendentes
+      setAutoMappedTransactions([]);
+      
+      // Recarregar lista de transações
+      await loadNonCategorizedTransactions();
+      
+      setSuccess(`${autoMappedTransactions.length} transações categorizadas automaticamente e salvas.`);
+      setTimeout(() => setSuccess(""), 3000);
+      
+    } catch (error) {
+      console.error("Erro ao salvar categorizações automáticas:", error);
+      setError("Não foi possível salvar as categorizações automáticas.");
+    }
+  };
+
   // Carregar transações não categorizadas
   const loadNonCategorizedTransactions = async () => {
     try {
@@ -186,6 +247,17 @@ const NonCategorized = () => {
       
       const ofxFilesSnapshot = await getDocs(ofxFilesQuery);
       const nonCategorizedTransactions = [];
+      const autoMappedToSave = [];
+      
+      // Identificar mapeamentos específicos por ID de transação
+      const specificMappings = {};
+      
+      // Primeiro, identificamos todos os mapeamentos específicos (para transações únicas)
+      Object.entries(categoryMappings).forEach(([key, mapping]) => {
+        if (mapping.isSpecificMapping && mapping.transactionId) {
+          specificMappings[mapping.transactionId] = mapping;
+        }
+      });
       
       // Processar cada arquivo OFX
       for (const fileDoc of ofxFilesSnapshot.docs) {
@@ -202,9 +274,37 @@ const NonCategorized = () => {
             // Filtrar transações não categorizadas
             transactions.forEach(transaction => {
               const normalizedDescription = transaction.description.trim().toLowerCase();
+              let isCategorized = false;
               
-              // Se não há mapeamento, adicionar à lista de não categorizados
-              if (!categoryMappings[normalizedDescription]) {
+              // Verificar se tem mapeamento específico por ID
+              if (specificMappings[transaction.id]) {
+                isCategorized = true;
+              } 
+              // Verificar se tem mapeamento por descrição
+              else if (categoryMappings[normalizedDescription]) {
+                const mapping = categoryMappings[normalizedDescription];
+                // Verificar se não é um mapeamento específico para outra transação
+                if (!mapping.isSpecificMapping) {
+                  isCategorized = true;
+                }
+              }
+              // Verificar se foi categorizada automaticamente durante o parsing
+              else if (transaction.autoMapped && transaction.category && transaction.categoryPath) {
+                // Esta transação foi categorizada automaticamente, mas não está salva
+                // Vamos marcá-la para salvar no Firestore
+                autoMappedToSave.push({
+                  ...transaction,
+                  id: transaction.id,
+                  description: transaction.description,
+                  groupName: transaction.categoryPath.split('.')[0]
+                });
+                
+                // A transação está categorizada, mesmo que ainda não esteja salva
+                isCategorized = true;
+              }
+              
+              // Se não está categorizada, adicionar à lista de não categorizados
+              if (!isCategorized) {
                 nonCategorizedTransactions.push({
                   ...transaction,
                   fileId: fileDoc.id,
@@ -218,6 +318,12 @@ const NonCategorized = () => {
             console.error(`Erro ao processar arquivo OFX ${fileData.fileName}:`, error);
           }
         }
+      }
+      
+      // Se houver transações categorizadas automaticamente, mas não salvas, atualizarmos o estado
+      if (autoMappedToSave.length > 0) {
+        console.log(`Encontradas ${autoMappedToSave.length} transações com categorização automática não salva.`);
+        setAutoMappedTransactions(autoMappedToSave);
       }
       
       // Ordenar transações por data (mais recente primeiro)
@@ -415,6 +521,14 @@ const NonCategorized = () => {
         {success && (
           <div className="success-message">
             {success}
+          </div>
+        )}
+        
+        {autoMappedTransactions.length > 0 && (
+          <div className="info-message">
+            <p>
+              {autoMappedTransactions.length} transações foram categorizadas automaticamente e estão sendo salvas...
+            </p>
           </div>
         )}
         
