@@ -13,6 +13,7 @@ import {
   addDoc
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { parseOFXFile } from "../../utils/OFXParser";
 import MainLayout from "../Layout/MainLayout";
 import "./PeriodManager.css";
 
@@ -96,7 +97,8 @@ const PeriodManager = () => {
           month: data.month || "",
           year: data.year || "",
           filePath: data.filePath || null,
-          transactionCount: data.transactionCount || 0
+          transactionCount: data.transactionCount || 0,
+          bankInfo: data.bankInfo || { org: "Desconhecido" }
         });
       });
       
@@ -108,21 +110,29 @@ const PeriodManager = () => {
   };
 
   // Manipular mudança de arquivo
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile && (selectedFile.name.endsWith('.ofx') || selectedFile.name.endsWith('.OFX'))) {
       setFile(selectedFile);
       
-      // Tentar detectar mês/ano do nome do arquivo, por ex: extrato_202312.ofx
-      const fileNameMatch = selectedFile.name.match(/(\d{4})(\d{2})/);
-      if (fileNameMatch) {
-        const [, yearStr, monthStr] = fileNameMatch;
-        if (monthStr >= '01' && monthStr <= '12') {
-          setMonth(monthStr);
+      try {
+        // Preview do arquivo para extrair informações do banco
+        const result = await parseOFXFile(selectedFile);
+        
+        // Tentar detectar mês/ano do nome do arquivo, por ex: extrato_202312.ofx
+        const fileNameMatch = selectedFile.name.match(/(\d{4})(\d{2})/);
+        if (fileNameMatch) {
+          const [, yearStr, monthStr] = fileNameMatch;
+          if (monthStr >= '01' && monthStr <= '12') {
+            setMonth(monthStr);
+          }
+          if (yearStr >= '2000' && yearStr <= currentYear.toString()) {
+            setYear(parseInt(yearStr));
+          }
         }
-        if (yearStr >= '2000' && yearStr <= currentYear.toString()) {
-          setYear(parseInt(yearStr));
-        }
+      } catch (error) {
+        console.error("Erro ao analisar o arquivo:", error);
+        // Ainda permitimos o upload mesmo que haja erro na pré-análise
       }
     } else {
       setFile(null);
@@ -141,7 +151,7 @@ const PeriodManager = () => {
       setError("Por favor, selecione o mês do período.");
       return;
     }
-    
+
     setError("");
     setUploading(true);
     setUploadProgress(10);
@@ -155,7 +165,22 @@ const PeriodManager = () => {
       const period = `${year}-${month}`;
       const periodLabel = `${months.find(m => m.value === month)?.label} de ${year}`;
       
-      // Verificar se o período já existe
+      // Analisar o arquivo OFX para extrair informações do banco
+      let bankInfo;
+      let bankOrg = "Banco Desconhecido";
+      
+      try {
+        const parseResult = await parseOFXFile(file);
+        bankInfo = parseResult.bankInfo;
+        bankOrg = bankInfo?.org || "Banco Desconhecido";
+      } catch (error) {
+        console.error("Erro ao analisar arquivo OFX:", error);
+        // Continuar com um valor padrão para a organização bancária
+      }
+      
+      setUploadProgress(20);
+      
+      // Verificar se já existe um arquivo para o mesmo período E banco
       const existingPeriodQuery = query(
         collection(db, "ofxFiles"),
         where("userId", "==", currentUser.uid),
@@ -164,8 +189,21 @@ const PeriodManager = () => {
       
       const existingPeriodSnapshot = await getDocs(existingPeriodQuery);
       
-      if (!existingPeriodSnapshot.empty) {
-        setError(`O período ${periodLabel} já existe. Se deseja substituir, exclua o período existente primeiro.`);
+      // Verificar se algum dos arquivos existentes tem a mesma organização bancária
+      let duplicateFound = false;
+      let hasSamePeriod = false;
+      
+      existingPeriodSnapshot.forEach(doc => {
+        const data = doc.data();
+        hasSamePeriod = true;
+        
+        if (data.bankInfo && data.bankInfo.org === bankOrg) {
+          duplicateFound = true;
+        }
+      });
+      
+      if (duplicateFound) {
+        setError(`Um arquivo do banco ${bankOrg} já existe para o período ${periodLabel}. Se deseja substituir, exclua o arquivo existente primeiro.`);
         setUploading(false);
         return;
       }
@@ -173,7 +211,8 @@ const PeriodManager = () => {
       setUploadProgress(30);
       
       // Fazer upload do arquivo para o Firebase Storage
-      const storageFilePath = `ofx/${currentUser.uid}/${period}/${file.name}`;
+      // Incluir o nome do banco no caminho para melhor organização
+      const storageFilePath = `ofx/${currentUser.uid}/${period}/${bankOrg}/${file.name}`;
       const storageRef = ref(storage, storageFilePath);
       
       await uploadBytes(storageRef, file);
@@ -194,7 +233,9 @@ const PeriodManager = () => {
         period,
         periodLabel,
         filePath: storageFilePath,
-        fileURL: downloadURL
+        fileURL: downloadURL,
+        bankInfo: bankInfo || { org: bankOrg },
+        bankOrg: bankOrg
       });
       
       setUploadProgress(100);
@@ -207,7 +248,12 @@ const PeriodManager = () => {
       // Recarregar períodos
       await loadPeriods();
       
-      setSuccess(`Período ${periodLabel} adicionado com sucesso!`);
+      // Mensagem de sucesso diferente se adicionou ao período existente
+      const successMessage = hasSamePeriod
+        ? `Arquivo do banco ${bankOrg} adicionado ao período ${periodLabel}!`
+        : `Período ${periodLabel} adicionado com sucesso!`;
+      
+      setSuccess(successMessage);
       setTimeout(() => setSuccess(""), 5000);
     } catch (error) {
       console.error("Erro ao adicionar período:", error);
@@ -425,6 +471,7 @@ const PeriodManager = () => {
                   <thead>
                     <tr>
                       <th>Período</th>
+                      <th>Banco</th>
                       <th>Arquivo</th>
                       <th>Data de Upload</th>
                       <th>Ações</th>
@@ -434,6 +481,7 @@ const PeriodManager = () => {
                     {periods.map((period) => (
                       <tr key={period.id}>
                         <td>{period.periodLabel}</td>
+                        <td>{period.bankInfo?.org || "Desconhecido"}</td>
                         <td className="file-name-cell">{period.fileName}</td>
                         <td>{formatDate(period.uploadDate)}</td>
                         <td className="action-buttons">

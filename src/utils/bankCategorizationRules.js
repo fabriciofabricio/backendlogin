@@ -17,6 +17,16 @@ const categorizeSicoobTransactions = (transaction) => {
   // Apenas categorizar transações positivas
   if (amount <= 0) return null;
   
+  // Primeira regra prioritária: verificar se contém "IFOOD" (insensitive)
+  if (description.toUpperCase().includes('IFOOD')) {
+    return {
+      category: 'Ifood',
+      categoryPath: 'RECEITA.Ifood',
+      autoMapped: true
+    };
+  }
+  
+  // Demais regras
   if (description.includes('DEB') || description.includes('DB')) {
     return {
       category: 'Cartão de Débito',
@@ -41,12 +51,6 @@ const categorizeSicoobTransactions = (transaction) => {
       categoryPath: 'RECEITA.TED',
       autoMapped: true
     };
-  } else if (description.includes('IFOOD')) {
-    return {
-      category: 'Ifood',
-      categoryPath: 'RECEITA.Ifood',
-      autoMapped: true
-    };
   }
   
   return null;
@@ -63,19 +67,20 @@ const categorizeStoneTransactions = (transaction) => {
   // Apenas categorizar transações positivas
   if (amount <= 0) return null;
   
+  // Regra prioritária: verificar se contém "ifood" (insensitive)
+  if (description.toLowerCase().includes('ifood')) {
+    return {
+      category: 'Ifood',
+      categoryPath: 'RECEITA.Ifood',
+      autoMapped: true
+    };
+  }
+  
   // Nova regra: Verificar se contém "Recebimento vendas - Antecipação"
   if (description.includes('Recebimento vendas - Antecipação')) {
     return {
       category: 'Cartão de Crédito',
       categoryPath: 'RECEITA.Cartão de Crédito',
-      autoMapped: true
-    };
-  }
-  // Nova regra: Verificar se contém "ifood" (case insensitive)
-  else if (description.toLowerCase().includes('ifood')) {
-    return {
-      category: 'Ifood',
-      categoryPath: 'RECEITA.Ifood',
       autoMapped: true
     };
   }

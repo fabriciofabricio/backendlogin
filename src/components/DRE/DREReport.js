@@ -168,6 +168,7 @@ const DREReport = () => {
         }
       });
       
+      // PARTE 1: Processar arquivos OFX
       const ofxFilesQuery = query(
         collection(db, "ofxFiles"),
         where("userId", "==", user.uid),
@@ -236,6 +237,44 @@ const DREReport = () => {
           }
         }
       }
+      
+      // PARTE 2: Processar entradas manuais de dinheiro
+      // Consultar entradas de dinheiro para o período selecionado
+      const cashEntriesQuery = query(
+        collection(db, "cashEntries"),
+        where("userId", "==", user.uid),
+        where("period", "==", period)
+      );
+      
+      const cashEntriesSnapshot = await getDocs(cashEntriesQuery);
+      
+      // Processar cada entrada manual e adicionar à estrutura DRE
+      cashEntriesSnapshot.forEach(doc => {
+        const entry = doc.data();
+        
+        // Verificar se a entrada tem categoria e valor
+        if (entry.categoryPath && typeof entry.amount === 'number') {
+          const pathParts = entry.categoryPath.split('.');
+          
+          if (pathParts.length >= 2) {
+            const mainCategory = pathParts[0];
+            const subCategory = entry.category || pathParts[1];
+            
+            // Verificar se a categoria principal existe na estrutura DRE
+            if (dreStructure[mainCategory]) {
+              // Adicionar à categoria principal
+              if (!dreStructure[mainCategory].items[subCategory]) {
+                dreStructure[mainCategory].items[subCategory] = 0;
+              }
+              
+              dreStructure[mainCategory].items[subCategory] += entry.amount;
+              dreStructure[mainCategory].total += entry.amount;
+              
+              console.log(`Entrada manual adicionada: ${formatCurrency(entry.amount)} em ${mainCategory}.${subCategory}`);
+            }
+          }
+        }
+      });
       
       const results = calculateDREResults(dreStructure);
       

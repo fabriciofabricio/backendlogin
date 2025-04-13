@@ -118,6 +118,16 @@ const Sidebar = () => {
               </NavLink>
             </li>
             <li>
+              <NavLink to="/cash-entry" className={({ isActive }) => isActive ? "active" : ""}>
+                <span className="menu-icon">
+                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
+                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </span>
+                <span className="menu-text">Entrada de Dinheiro</span>
+              </NavLink>
+            </li>
+            <li>
               <NavLink to="/export" className={({ isActive }) => isActive ? "active" : ""}>
                 <span className="menu-icon">
                   <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">

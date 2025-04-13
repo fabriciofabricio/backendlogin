@@ -13,6 +13,7 @@ import Transactions from "./components/Transactions/Transactions";
 import NonCategorized from "./components/Transactions/NonCategorized";
 import EditCategorized from "./components/Transactions/EditCategorized";
 import PeriodManager from "./components/Periods/PeriodManager";
+import CashEntry from "./components/CashEntry/CashEntry";
 import Settings from "./components/Settings/Settings";
 import Charts from "./components/Charts/Charts";
 import "./App.css";
@@ -117,6 +118,14 @@ function App() {
           element={
             <ProtectedRoute>
               <PeriodManager />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/cash-entry" 
+          element={
+            <ProtectedRoute>
+              <CashEntry />
             </ProtectedRoute>
           } 
         />

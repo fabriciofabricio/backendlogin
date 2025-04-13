@@ -1,0 +1,430 @@
+/* src/components/CashEntry/CashEntry.css */
+.cash-entry-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .cash-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .cash-entry-header h1 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 24px;
+  }
+  
+  .period-selector {
+    display: flex;
+    align-items: center;
+  }
+  
+  .period-selector label {
+    margin-right: 10px;
+    font-weight: 600;
+    color: #555;
+  }
+  
+  .period-selector select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    min-width: 200px;
+  }
+  
+  /* Card do formulário */
+  .cash-entry-form-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    margin-bottom: 25px;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .cash-entry-form-card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .cash-entry-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-group.full-width {
+    grid-column: span 2;
+  }
+  
+  .form-group label {
+    font-weight: 500;
+    color: #555;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: #4285f4;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+  }
+  
+  .form-actions {
+    grid-column: span 2;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .submit-button {
+    padding: 12px 25px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .submit-button:hover {
+    background-color: #3367d6;
+  }
+  
+  .submit-button:disabled {
+    background-color: #a6c5f7;
+    cursor: not-allowed;
+  }
+  
+  .cancel-button {
+    padding: 12px 25px;
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .cancel-button:hover {
+    background-color: #e9e9e9;
+  }
+  
+  /* Card de histórico de entradas */
+  .cash-entry-history-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  .cash-entry-history-card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .entries-total {
+    font-size: 14px;
+    color: #4caf50;
+    background-color: #e8f5e9;
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+  
+  .entries-table-container {
+    overflow-x: auto;
+  }
+  
+  .entries-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .entries-table th,
+  .entries-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .entries-table th {
+    background-color: #f8f9fa;
+    font-weight: 500;
+    color: #2c3e50;
+  }
+  
+  .entries-table tr:hover {
+    background-color: #f9f9f9;
+  }
+  
+  .amount-cell {
+    font-weight: 600;
+    color: #4caf50;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .edit-button,
+  .delete-button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+  
+  .edit-button {
+    color: #2196f3;
+  }
+  
+  .edit-button:hover {
+    background-color: #e3f2fd;
+  }
+  
+  .delete-button {
+    color: #f44336;
+  }
+  
+  .delete-button:hover {
+    background-color: #ffebee;
+  }
+  
+  /* Estado de carregamento */
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+  }
+  
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-left-color: #4285f4;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Mensagens de feedback */
+  .error-message,
+  .success-message {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    position: relative;
+  }
+  
+  .error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    border-left: 4px solid #c62828;
+  }
+  
+  .success-message {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border-left: 4px solid #2e7d32;
+  }
+  
+  .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: inherit;
+    cursor: pointer;
+  }
+  
+  /* Mensagem quando não há entradas */
+  .no-entries {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+  }
+  
+  /* Modal de confirmação de exclusão */
+  .confirm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .confirm-modal {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 450px;
+    overflow: hidden;
+    animation: modal-appear 0.3s ease;
+  }
+  
+  @keyframes modal-appear {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .confirm-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .confirm-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+  }
+  
+  .confirm-modal-content {
+    padding: 20px;
+  }
+  
+  .confirm-modal-content p {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .confirm-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .cancel-modal-button {
+    padding: 8px 16px;
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .cancel-modal-button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .confirm-modal-button {
+    padding: 8px 16px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .confirm-modal-button:hover {
+    background-color: #d32f2f;
+  }
+  
+  /* Responsividade */
+  @media (max-width: 768px) {
+    .cash-entry-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .period-selector {
+      margin-top: 15px;
+      width: 100%;
+    }
+    
+    .cash-entry-form {
+      grid-template-columns: 1fr;
+    }
+    
+    .form-group.full-width {
+      grid-column: span 1;
+    }
+    
+    .form-actions {
+      grid-column: span 1;
+    }
+  }
