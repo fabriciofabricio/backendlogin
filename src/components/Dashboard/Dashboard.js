@@ -19,7 +19,6 @@ import "./Dashboard.css";
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [categoriesData, setCategoriesData] = useState(null);
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [error, setError] = useState("");
   const [financialData, setFinancialData] = useState({
@@ -290,14 +289,6 @@ const Dashboard = () => {
         setUser(auth.currentUser);
         
         try {
-          // Buscar categorias do usuário
-          const userCategoriesDoc = await getDoc(doc(db, "userCategories", auth.currentUser.uid));
-          
-          if (userCategoriesDoc.exists()) {
-            const data = userCategoriesDoc.data();
-            setCategoriesData(data);
-          }
-          
           // Buscar transações recentes para o usuário atual
           const transactionsQuery = query(
             collection(db, "transactions"),
@@ -362,62 +353,6 @@ const Dashboard = () => {
   // Formatar data
   const formatDate = (date) => {
     return new Intl.DateTimeFormat('pt-BR').format(date);
-  };
-
-  // Organizar as categorias em grupos e subgrupos - NOW USED IN THE COMPONENT RENDERING
-  const organizeCategories = () => {
-    if (!categoriesData || !categoriesData.categories) {
-      return {
-        groupedCategories: {},
-        totalCategories: 0
-      };
-    }
-
-    const categories = categoriesData.categories;
-    const categoryOrder = categoriesData.categoryOrder || {};
-    
-    const selectedKeys = Object.keys(categories).filter(key => categories[key] === true);
-    const groupedCategories = {};
-
-    // Processar cada chave
-    selectedKeys.forEach(key => {
-      const parts = key.split('.');
-      
-      // Obter o grupo (primeira parte)
-      const groupName = parts[0];
-      
-      // Inicializar o grupo se não existir
-      if (!groupedCategories[groupName]) {
-        // Usar a ordem se disponível, ou um número alto para categorias sem ordem
-        const order = categoryOrder[groupName] || 999;
-        groupedCategories[groupName] = {
-          normalCategories: [],
-          subGroups: {},
-          order: order
-        };
-      }
-      
-      // Verificar se tem 2 ou 3 partes (com ou sem subgrupo)
-      if (parts.length === 2) {
-        // Sem subgrupo: grupo.categoria
-        groupedCategories[groupName].normalCategories.push(parts[1]);
-      } else if (parts.length === 3) {
-        // Com subgrupo: grupo.subgrupo.categoria
-        const subGroupName = parts[1];
-        const categoryName = parts[2];
-        
-        if (!groupedCategories[groupName].subGroups[subGroupName]) {
-          groupedCategories[groupName].subGroups[subGroupName] = [];
-        }
-        
-        groupedCategories[groupName].subGroups[subGroupName].push(categoryName);
-      }
-    });
-
-    return {
-      groupedCategories,
-      totalCategories: selectedKeys.length
-    };
   };
 
   if (loading) {
@@ -569,53 +504,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
-      {/* Adicionar nova seção para utilizar a função organizeCategories */}
-      {categoriesData && (
-        <div className="categories-section">
-          <div className="section-header">
-            <h2 className="section-title">Categorias</h2>
-          </div>
-          <div className="categories-summary">
-            {(() => {
-              const { groupedCategories, totalCategories } = organizeCategories();
-              
-              if (totalCategories === 0) {
-                return <p>Nenhuma categoria configurada.</p>;
-              }
-              
-              // Mostrar apenas o número de categorias por grupo para simplificar
-              return (
-                <div className="category-groups-list">
-                  <p>Total de {totalCategories} categorias configuradas nos seguintes grupos:</p>
-                  <ul>
-                    {Object.entries(groupedCategories)
-                      .sort(([, a], [, b]) => a.order - b.order)
-                      .map(([groupName, group]) => {
-                        const normalCount = group.normalCategories.length;
-                        const subGroupCount = Object.keys(group.subGroups).length;
-                        let subCatCount = 0;
-                        
-                        Object.values(group.subGroups).forEach(cats => {
-                          subCatCount += cats.length;
-                        });
-                        
-                        const totalGroupCount = normalCount + subCatCount;
-                        
-                        return (
-                          <li key={groupName}>
-                            <strong>{groupName}:</strong> {totalGroupCount} categorias
-                            {subGroupCount > 0 && ` (${subGroupCount} subgrupos)`}
-                          </li>
-                        );
-                      })}
-                  </ul>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      )}
 
       {/* Transações recentes */}
       {recentTransactions.length > 0 && (
