@@ -1,4 +1,4 @@
-// src/components/Charts/Charts.js
+// src/components/Charts/Charts.js - Versão atualizada
 import React, { useState, useEffect, useCallback } from "react";
 import { auth, db, storage } from "../../firebase/config";
 import { 
@@ -15,8 +15,6 @@ import {
   Line, 
   BarChart, 
   Bar, 
-  PieChart, 
-  Pie, 
   ResponsiveContainer, 
   XAxis, 
   YAxis, 
@@ -34,13 +32,15 @@ const Charts = () => {
   const [periods, setPeriods] = useState([]);
   const [financialData, setFinancialData] = useState([]);
   const [error, setError] = useState("");
-  const [activeChart, setActiveChart] = useState("line");
+
   const [selectedMetric, setSelectedMetric] = useState("resultadoFinal");
   const [categoryData, setCategoryData] = useState([]); // Store detailed category data
   const [availableCategories, setAvailableCategories] = useState([]); // List of all available categories
   const [selectedCategories, setSelectedCategories] = useState([]); // Selected categories for filtering
   const [filterByCategory, setFilterByCategory] = useState(false); // Toggle for category filtering
 
+  const [excludeAportesChart, setExcludeAportesChart] = useState(false);
+  const [excludeAportesTable, setExcludeAportesTable] = useState(false);
   const COLORS = ['#4caf50', '#ff9800', '#2196f3', '#f44336', '#9c27b0', '#00acc1', '#3f51b5', '#607d8b', '#795548', '#e91e63'];
   
   // Métricas disponíveis para visualização
@@ -443,85 +443,70 @@ const Charts = () => {
     loadUserAndData();
   }, [loadPeriodsData, loadCategories]);
 
-  // Toggle category filter mode
-  const toggleCategoryFilter = () => {
-    setFilterByCategory(!filterByCategory);
-    
-    // Reset selected categories when disabling filter
-    if (filterByCategory) {
-      setSelectedCategories([]);
-    }
-  };
-
-  // Handle category selection for filtering
-  const handleCategorySelection = (e) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-    setSelectedCategories(selectedOptions);
+  // Handle category selection for filtering - ALTERADO: agora alterna categorias individuais
+  const handleCategorySelection = (categoryId) => {
+    setSelectedCategories(prevSelected => {
+      // Se a categoria já está selecionada, removê-la
+      if (prevSelected.includes(categoryId)) {
+        return prevSelected.filter(id => id !== categoryId);
+      } 
+      // Caso contrário, adicioná-la
+      else {
+        return [...prevSelected, categoryId];
+      }
+    });
   };
 
   // Prepare data for charts based on selected filter
   const prepareChartData = () => {
     if (!filterByCategory || selectedCategories.length === 0) {
       // No category filter or no categories selected, use normal data
-      return financialData.map(period => ({
-        name: formatPeriod(period.period),
-        value: period[selectedMetric]
-      }));
-    }
-    
-    // When filtering by categories
-    const filteredData = [];
-    
-    // Process each period
-    categoryData.forEach((periodData, index) => {
-      const periodName = formatPeriod(periodData.period);
-      let totalValue = 0;
-      
-      // Sum the values of selected categories
-      selectedCategories.forEach(categoryPath => {
-        if (periodData.categories[categoryPath]) {
-          totalValue += periodData.categories[categoryPath].value;
-        }
-      });
-      
-      filteredData.push({
-        name: periodName,
-        value: totalValue
-      });
-    });
-    
-    return filteredData;
-  };
-
-  // Prepare data for comparison chart with categories
-  const prepareCategoryComparisonData = () => {
-    if (!filterByCategory || selectedCategories.length === 0) {
-      // No category filter, use regular comparison data
-      return financialData.map(period => ({
-        name: formatPeriod(period.period),
-        receitaBruta: period.receitaBruta,
-        custosDiretos: period.custosDiretos,
-        lucroBruto: period.lucroBruto,
-        resultadoFinal: period.resultadoFinal
-      }));
-    }
-    
-    // Create comparison data with selected categories
-    return financialData.map((period, index) => {
-      const periodCategories = categoryData[index].categories;
-      const result = { name: formatPeriod(period.period) };
-      
-      selectedCategories.forEach(categoryPath => {
-        // Get category name for display
-        const category = availableCategories.find(c => c.id === categoryPath);
-        const displayName = category ? category.name : categoryPath.split('.')[1];
+      return financialData.map(period => {
+        // Se estiver excluindo aportes, calcular resultado final ajustado
+        let resultadoFinalAjustado = period.resultadoFinal;
         
-        // Add category value to result
-        result[displayName] = periodCategories[categoryPath]?.value || 0;
+        // Procurar por aportes de sócios nos dados de categoria
+        if (excludeAportesChart) {
+          const periodCategoryData = categoryData.find(pc => pc.period === period.period);
+          if (periodCategoryData && periodCategoryData.categories) {
+            // Procurar categorias que contém "aporte" nos dados de categoria
+            Object.entries(periodCategoryData.categories).forEach(([categoryPath, categoryData]) => {
+              if (categoryPath.toLowerCase().includes('aporte') || 
+                  (categoryData.category && categoryData.category.toLowerCase().includes('aporte'))) {
+                // Subtrair o valor do aporte do resultado final
+                resultadoFinalAjustado -= categoryData.value;
+              }
+            });
+          }
+        }
+        
+        return {
+          name: formatPeriod(period.period),
+          value: excludeAportesChart ? resultadoFinalAjustado : period[selectedMetric]
+        };
+      });
+    }
+    
+    // When filtering by multiple categories, create data for each category
+    const multiCategoryData = financialData.map((period, index) => {
+      const result = { 
+        name: formatPeriod(period.period)
+      };
+      
+      // Add each selected category as a separate data point
+      selectedCategories.forEach(categoryId => {
+        const category = availableCategories.find(c => c.id === categoryId);
+        const categoryName = category ? category.name : categoryId.split('.')[1];
+        const periodCategoryData = categoryData[index].categories[categoryId];
+        
+        // Add category value if it exists
+        result[categoryName] = periodCategoryData ? periodCategoryData.value : 0;
       });
       
       return result;
     });
+    
+    return multiCategoryData;
   };
 
   // Formatar data para exibição mais amigável
@@ -540,31 +525,6 @@ const Charts = () => {
     }).format(value);
   };
 
-  // Prepare summary table data with category filter
-  const prepareSummaryTableData = () => {
-    if (!filterByCategory || selectedCategories.length === 0) {
-      // No category filter, return regular data
-      return financialData;
-    }
-    
-    // Create custom summary data with category totals
-    return financialData.map((period, index) => {
-      const periodCategories = categoryData[index].categories;
-      let categoryTotal = 0;
-      
-      selectedCategories.forEach(categoryPath => {
-        if (periodCategories[categoryPath]) {
-          categoryTotal += periodCategories[categoryPath].value;
-        }
-      });
-      
-      return {
-        ...period,
-        categoryFilteredValue: categoryTotal
-      };
-    });
-  };
-
   // Renderizar gráfico de linha - Evolução ao longo do tempo
   const renderLineChart = () => {
     const data = prepareChartData();
@@ -572,9 +532,23 @@ const Charts = () => {
       ? "Categorias Selecionadas" 
       : (metrics.find(m => m.id === selectedMetric)?.name || selectedMetric);
     
+    const chartTitle = filterByCategory && selectedCategories.length > 0 
+      ? "Evolução de Categorias por Período" 
+      : `Evolução de ${metricName} por Período`;
+    
+    // Adicionar indicação de que os aportes foram excluídos
+    const titleWithAportes = excludeAportesChart && !filterByCategory 
+      ? `${chartTitle} (Excluindo Aportes)` 
+      : chartTitle;
+    
     return (
       <div className="chart-container">
-        <h3>Evolução de {metricName} por Período</h3>
+        <h3>
+          {titleWithAportes}
+          {filterByCategory && selectedCategories.length > 0 && (
+            <span className="selected-categories-count">{selectedCategories.length}</span>
+          )}
+        </h3>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart
             data={data}
@@ -585,19 +559,44 @@ const Charts = () => {
             <YAxis tickFormatter={(value) => formatCurrency(value)} />
             <Tooltip formatter={(value) => formatCurrency(value)} />
             <Legend />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              name={metricName}
-              stroke="#4caf50" 
-              strokeWidth={2}
-              activeDot={{ r: 8 }}
-            />
+            
+            {filterByCategory && selectedCategories.length > 0 ? (
+              // Quando filtrando por categorias, renderizar uma linha para cada categoria
+              selectedCategories.map((categoryId, index) => {
+                const category = availableCategories.find(c => c.id === categoryId);
+                const categoryName = category ? category.name : categoryId.split('.')[1];
+                
+                return (
+                  <Line 
+                    key={categoryId}
+                    type="monotone" 
+                    dataKey={categoryName}
+                    name={categoryName} // Mostra apenas o nome da categoria na legenda
+                    stroke={COLORS[index % COLORS.length]} 
+                    strokeWidth={2}
+                    activeDot={{ r: 8 }}
+                  />
+                );
+              })
+            ) : (
+              // Sem filtro de categoria, mostrar apenas a métrica selecionada
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                name={excludeAportesChart ? `${metricName} (Excluindo Aportes)` : metricName}
+                stroke="#4caf50" 
+                strokeWidth={2}
+                activeDot={{ r: 8 }}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>
     );
   };
+
+  // Valor padrão para tipo de gráfico
+  const [activeChart, setActiveChart] = useState("bar"); // Mudando o padrão para barras
 
   // Renderizar gráfico de barras - Comparação entre períodos
   const renderBarChart = () => {
@@ -606,9 +605,23 @@ const Charts = () => {
       ? "Categorias Selecionadas" 
       : (metrics.find(m => m.id === selectedMetric)?.name || selectedMetric);
     
+    const chartTitle = filterByCategory && selectedCategories.length > 0 
+      ? "Comparação de Categorias por Período" 
+      : `Comparação de ${metricName} por Período`;
+    
+    // Adicionar indicação de que os aportes foram excluídos
+    const titleWithAportes = excludeAportesChart && !filterByCategory 
+      ? `${chartTitle} (Excluindo Aportes)` 
+      : chartTitle;
+    
     return (
       <div className="chart-container">
-        <h3>Comparação de {metricName} por Período</h3>
+        <h3>
+          {titleWithAportes}
+          {filterByCategory && selectedCategories.length > 0 && (
+            <span className="selected-categories-count">{selectedCategories.length}</span>
+          )}
+        </h3>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart
             data={data}
@@ -619,142 +632,93 @@ const Charts = () => {
             <YAxis tickFormatter={(value) => formatCurrency(value)} />
             <Tooltip formatter={(value) => formatCurrency(value)} />
             <Legend />
-            <Bar 
-              dataKey="value" 
-              name={metricName}
-              fill="#2196f3"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Bar>
+            
+            {filterByCategory && selectedCategories.length > 0 ? (
+              // Quando filtrando por categorias, renderizar uma barra para cada categoria
+              selectedCategories.map((categoryId, index) => {
+                const category = availableCategories.find(c => c.id === categoryId);
+                const categoryName = category ? category.name : categoryId.split('.')[1];
+                
+                return (
+                  <Bar 
+                    key={categoryId}
+                    dataKey={categoryName}
+                    name={categoryName} // Mostra apenas o nome da categoria na legenda
+                    fill={COLORS[index % COLORS.length]}
+                    // Reduzir o tamanho das barras quando houver múltiplas categorias
+                    barSize={Math.max(40 - (selectedCategories.length * 2), 15)}
+                  />
+                );
+              })
+            ) : (
+              // Sem filtro de categoria, mostrar apenas a métrica selecionada
+              <Bar 
+                dataKey="value" 
+                name={excludeAportesChart ? `${metricName} (Excluindo Aportes)` : metricName}
+                fill="#2196f3"
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Bar>
+            )}
           </BarChart>
         </ResponsiveContainer>
       </div>
     );
   };
 
-  // Renderizar gráfico de pizza - Distribuição por período
-  const renderPieChart = () => {
-    const data = prepareChartData();
-    const metricName = filterByCategory && selectedCategories.length > 0 
-      ? "Categorias Selecionadas" 
-      : (metrics.find(m => m.id === selectedMetric)?.name || selectedMetric);
-    
-    // Calculate percentages
-    const total = data.reduce((sum, item) => sum + Math.abs(item.value), 0);
-    const dataWithPercent = data.map(item => ({
-      ...item,
-      percent: total ? ((Math.abs(item.value) / total) * 100).toFixed(1) : 0
-    }));
-    
-    // Custom Label para o PieChart
-    const renderCustomizedLabel = ({ 
-      cx, cy, midAngle, innerRadius, outerRadius, percent, index, name
-    }) => {
-      const RADIAN = Math.PI / 180;
-      const radius = outerRadius * 1.1;
-      const x = cx + radius * Math.cos(-midAngle * RADIAN);
-      const y = cy + radius * Math.sin(-midAngle * RADIAN);
-      
-      return (
-        <text 
-          x={x} 
-          y={y} 
-          fill={COLORS[index % COLORS.length]}
-          textAnchor={x > cx ? 'start' : 'end'} 
-          dominantBaseline="central"
-          fontSize={12}
-          fontWeight="bold"
-        >
-          {`${name}: ${dataWithPercent[index].percent}%`}
-        </text>
-      );
-    };
-    
-    return (
-      <div className="chart-container">
-        <h3>Distribuição de {metricName} por Período</h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <PieChart>
-            <Pie
-              data={dataWithPercent}
-              cx="50%"
-              cy="50%"
-              labelLine={true}
-              label={renderCustomizedLabel}
-              outerRadius={150}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {dataWithPercent.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value) => formatCurrency(value)} />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  };
 
-  // Renderizar gráfico de barras - Múltiplas métricas por período
-  const renderComparisonChart = () => {
-    const data = prepareCategoryComparisonData();
-    let dataFields = [];
-    
-    if (filterByCategory && selectedCategories.length > 0) {
-      // When using category filter, get names of selected categories for the legend
-      selectedCategories.forEach(categoryPath => {
-        const category = availableCategories.find(c => c.id === categoryPath);
-        if (category) {
-          dataFields.push({
-            dataKey: category.name,
-            name: category.name,
-            color: COLORS[dataFields.length % COLORS.length]
-          });
+
+  // Preparar dados para tabela de resumo e realizar cálculos adicionais
+  const prepareSummaryTableData = () => {
+    let results = [];
+
+    if (!filterByCategory || selectedCategories.length === 0) {
+      // Sem filtro de categoria, processar dados normais
+      results = financialData.map(period => {
+        // Se estiver excluindo aportes, calcular resultado final ajustado
+        let resultadoFinalAjustado = period.resultadoFinal;
+        
+        // Procurar por aportes de sócios nos dados de categoria
+        if (excludeAportesTable) {
+          const periodCategoryData = categoryData.find(pc => pc.period === period.period);
+          if (periodCategoryData && periodCategoryData.categories) {
+            // Procurar categorias que contém "aporte" nos dados de categoria
+            Object.entries(periodCategoryData.categories).forEach(([categoryPath, categoryData]) => {
+              if (categoryPath.toLowerCase().includes('aporte') || 
+                  (categoryData.category && categoryData.category.toLowerCase().includes('aporte'))) {
+                // Subtrair o valor do aporte do resultado final
+                resultadoFinalAjustado -= categoryData.value;
+              }
+            });
+          }
         }
+        
+        return {
+          ...period,
+          resultadoFinalAjustado
+        };
       });
     } else {
-      // Default comparison fields
-      dataFields = [
-        { dataKey: "receitaBruta", name: "Receita Bruta", color: "#4caf50" },
-        { dataKey: "custosDiretos", name: "Custos Diretos", color: "#f44336" },
-        { dataKey: "lucroBruto", name: "Lucro Bruto", color: "#2196f3" },
-        { dataKey: "resultadoFinal", name: "Resultado Final", color: "#ff9800" }
-      ];
+      // Com filtro de categorias, processar dados filtrados
+      results = financialData.map((period, index) => {
+        const result = { ...period };
+        const categoriesForPeriod = categoryData[index]?.categories || {};
+        
+        // Adicionar cada categoria selecionada como uma propriedade separada
+        selectedCategories.forEach(categoryId => {
+          const category = availableCategories.find(c => c.id === categoryId);
+          const categoryName = category ? category.name : categoryId.split('.')[1];
+          
+          result[categoryName] = categoriesForPeriod[categoryId]?.value || 0;
+        });
+        
+        return result;
+      });
     }
     
-    return (
-      <div className="chart-container">
-        <h3>
-          {filterByCategory && selectedCategories.length > 0 
-            ? "Comparação de Categorias por Período" 
-            : "Comparação de Métricas por Período"}
-        </h3>
-        <ResponsiveContainer width="100%" height={500}>
-          <BarChart
-            data={data}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={(value) => formatCurrency(value)} />
-            <Tooltip formatter={(value) => formatCurrency(value)} />
-            <Legend />
-            {dataFields.map((field, index) => (
-              <Bar 
-                key={field.dataKey}
-                dataKey={field.dataKey} 
-                name={field.name} 
-                fill={field.color} 
-              />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    );
+    return results;
   };
 
   return (
@@ -786,64 +750,101 @@ const Charts = () => {
                 <label>Tipo de Gráfico:</label>
                 <div className="chart-buttons">
                   <button 
-                    className={`chart-button ${activeChart === 'line' ? 'active' : ''}`}
-                    onClick={() => setActiveChart('line')}
-                  >
-                    <span className="chart-icon">📈</span> Linha
-                  </button>
-                  <button 
                     className={`chart-button ${activeChart === 'bar' ? 'active' : ''}`}
                     onClick={() => setActiveChart('bar')}
                   >
                     <span className="chart-icon">📊</span> Barras
                   </button>
                   <button 
-                    className={`chart-button ${activeChart === 'pie' ? 'active' : ''}`}
-                    onClick={() => setActiveChart('pie')}
+                    className={`chart-button ${activeChart === 'line' ? 'active' : ''}`}
+                    onClick={() => setActiveChart('line')}
                   >
-                    <span className="chart-icon">🍩</span> Pizza
-                  </button>
-                  <button 
-                    className={`chart-button ${activeChart === 'comparison' ? 'active' : ''}`}
-                    onClick={() => setActiveChart('comparison')}
-                  >
-                    <span className="chart-icon">📋</span> Comparativo
+                    <span className="chart-icon">📈</span> Linha
                   </button>
                 </div>
               </div>
               
-              {/* Category Filter Controls */}
+              {/* Controles de filtro de categoria aprimorados */}
               <div className="filter-controls">
+                <div className="exclude-aportes-control">
+                  <label className="exclude-aportes-toggle">
+                    <input 
+                      type="checkbox" 
+                      checked={excludeAportesChart}
+                      onChange={() => setExcludeAportesChart(!excludeAportesChart)}
+                    />
+                    <span>Excluir aportes de sócios do cálculo do Resultado Final</span>
+                    {excludeAportesChart && (
+                      <span className="active-filter-indicator">Filtro ativo</span>
+                    )}
+                  </label>
+                </div>
+                
                 <div className="filter-toggle">
                   <label>
                     <input 
                       type="checkbox" 
                       checked={filterByCategory}
-                      onChange={toggleCategoryFilter}
+                      onChange={() => {
+                        setFilterByCategory(!filterByCategory);
+                        // Limpar seleções quando desabilitar o filtro
+                        if (filterByCategory) setSelectedCategories([]);
+                      }}
                     />
                     Filtrar por categorias específicas
+                    {filterByCategory && (
+                      <span className="active-filter-indicator">Filtro ativo</span>
+                    )}
                   </label>
                 </div>
                 
                 {filterByCategory && (
-                  <div className="category-selector">
-                    <label>Selecione as categorias:</label>
-                    <select 
-                      multiple 
-                      value={selectedCategories}
-                      onChange={handleCategorySelection}
-                      className="category-multi-select"
-                      size={5}
-                    >
-                      {availableCategories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.displayName}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="category-help-text">
-                      Pressione Ctrl (ou Cmd no Mac) para selecionar múltiplas categorias
+                  <div className="improved-category-selector">
+                    <div className="category-selector-header">
+                      <label>Selecione as categorias:</label>
+                      {selectedCategories.length > 0 && (
+                        <button 
+                          className="clear-selection-button"
+                          onClick={() => setSelectedCategories([])}
+                        >
+                          Limpar seleção
+                        </button>
+                      )}
                     </div>
+                    
+                    <div className="category-grid">
+                      {availableCategories.map(category => (
+                        <div 
+                          key={category.id}
+                          className={`category-card ${selectedCategories.includes(category.id) ? 'selected' : ''}`}
+                          onClick={() => handleCategorySelection(category.id)}
+                          title={`Grupo: ${category.group}`} 
+                        >
+                          <div className="category-card-content">
+                            <div className="category-checkbox">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedCategories.includes(category.id)}
+                                readOnly
+                              />
+                            </div>
+                            <div className="category-info">
+                              <div className="category-name">{category.name}</div>
+                              <div className="category-badge">{category.group.includes('CMV') ? 'CMV' : 
+                                category.group.includes('RECEITA') ? 'Receita' : 
+                                category.group.includes('DESPESAS') ? 'Despesa' : 
+                                'Outro'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {selectedCategories.length > 0 && (
+                      <div className="selected-categories-summary">
+                        {selectedCategories.length} categorias selecionadas
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -864,22 +865,41 @@ const Charts = () => {
             </div>
             
             <div className="charts-content">
-              {activeChart === 'line' && renderLineChart()}
               {activeChart === 'bar' && renderBarChart()}
-              {activeChart === 'pie' && renderPieChart()}
-              {activeChart === 'comparison' && renderComparisonChart()}
+              {activeChart === 'line' && renderLineChart()}
             </div>
             
             <div className="periods-summary">
               <h3>Resumo dos Períodos</h3>
+              
+              <div className="summary-controls">
+                <label className="exclude-aportes-toggle">
+                  <input 
+                    type="checkbox" 
+                    checked={excludeAportesTable}
+                    onChange={() => setExcludeAportesTable(!excludeAportesTable)}
+                  />
+                  <span>Excluir aportes de sócios do cálculo do Resultado Final</span>
+                </label>
+              </div>
+              
               <div className="summary-table-container">
                 <table className="summary-table">
                   <thead>
                     <tr>
                       <th>Período</th>
                       {filterByCategory && selectedCategories.length > 0 ? (
-                        <th>Total das Categorias Selecionadas</th>
+                        // Mostrar colunas para cada categoria selecionada
+                        selectedCategories.map(categoryId => {
+                          const category = availableCategories.find(c => c.id === categoryId);
+                          return (
+                            <th key={categoryId}>
+                              {category?.name || categoryId.split('.')[1]}
+                            </th>
+                          );
+                        })
                       ) : (
+                        // Colunas padrão para métricas financeiras
                         <>
                           <th>Receita Bruta</th>
                           <th>Custos Diretos</th>
@@ -894,23 +914,70 @@ const Charts = () => {
                       <tr key={index}>
                         <td>{formatPeriod(period.period)}</td>
                         {filterByCategory && selectedCategories.length > 0 ? (
-                          <td className={period.categoryFilteredValue >= 0 ? "amount-positive" : "amount-negative"}>
-                            {formatCurrency(period.categoryFilteredValue)}
-                          </td>
+                          // Células para cada categoria selecionada
+                          selectedCategories.map(categoryId => {
+                            const category = availableCategories.find(c => c.id === categoryId);
+                            const categoryName = category ? category.name : categoryId.split('.')[1];
+                            const value = period[categoryName] || 0;
+                            
+                            return (
+                              <td key={categoryId} className={value >= 0 ? "amount-positive" : "amount-negative"}>
+                                {formatCurrency(value)}
+                              </td>
+                            );
+                          })
                         ) : (
+                          // Células padrão para métricas financeiras
                           <>
                             <td className="amount-positive">{formatCurrency(period.receitaBruta)}</td>
                             <td className="amount-negative">{formatCurrency(period.custosDiretos)}</td>
                             <td className={period.lucroBruto >= 0 ? "amount-positive" : "amount-negative"}>
                               {formatCurrency(period.lucroBruto)}
                             </td>
-                            <td className={period.resultadoFinal >= 0 ? "amount-positive" : "amount-negative"}>
-                              {formatCurrency(period.resultadoFinal)}
+                            <td className={period.resultadoFinalAjustado >= 0 ? "amount-positive" : "amount-negative"}>
+                              {formatCurrency(excludeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal)}
                             </td>
                           </>
                         )}
                       </tr>
                     ))}
+                    
+                    {/* Linha de totais */}
+                    {!filterByCategory || selectedCategories.length === 0 ? (
+                      <tr className="total-row">
+                        <td><strong>TOTAL</strong></td>
+                        <td className="amount-positive">
+                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.receitaBruta, 0))}
+                        </td>
+                        <td className="amount-negative">
+                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.custosDiretos, 0))}
+                        </td>
+                        <td className={prepareSummaryTableData().reduce((sum, period) => sum + period.lucroBruto, 0) >= 0 ? "amount-positive" : "amount-negative"}>
+                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.lucroBruto, 0))}
+                        </td>
+                        <td className={prepareSummaryTableData().reduce((sum, period) => sum + (excludeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal), 0) >= 0 ? "amount-positive" : "amount-negative"}>
+                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + (excludeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal), 0))}
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr className="total-row">
+                        <td><strong>TOTAL</strong></td>
+                        {selectedCategories.map(categoryId => {
+                          const category = availableCategories.find(c => c.id === categoryId);
+                          const categoryName = category ? category.name : categoryId.split('.')[1];
+                          
+                          // Calcular o total para esta categoria em todos os períodos
+                          const totalValue = prepareSummaryTableData().reduce((sum, period) => 
+                            sum + (period[categoryName] || 0), 0);
+                          
+                          return (
+                            <td key={categoryId} className={totalValue >= 0 ? "amount-positive" : "amount-negative"}>
+                              {formatCurrency(totalValue)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
