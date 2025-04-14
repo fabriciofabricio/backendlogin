@@ -113,23 +113,23 @@ const CategoryDetails = () => {
       if (userCategoriesDoc.exists()) {
         const categoriesData = userCategoriesDoc.data();
         
+        // Process categories into a more usable format for the TransactionItem component
         if (categoriesData.categories) {
-          // Processar categorias para formato utilizável
+          // Extrair categorias selecionadas organizadas por grupo
           const flatCategories = [];
           
-          Object.keys(categoriesData.categories).forEach(key => {
-            if (categoriesData.categories[key]) {
-              const parts = key.split('.');
-              
+          Object.keys(categoriesData.categories).forEach(path => {
+            if (categoriesData.categories[path]) {
+              const parts = path.split('.');
               if (parts.length === 2) {
                 const group = parts[0];
-                const category = parts[1];
+                const category = parts[1]; // Fixed: Define category variable
                 
                 flatCategories.push({
-                  fullPath: key,
+                  fullPath: path,
                   group,
-                  category,
-                  displayName: category // Apenas o nome da categoria, sem o grupo
+                  category,  // Now correctly defined
+                  displayName: category
                 });
               }
             }
@@ -194,7 +194,7 @@ const CategoryDetails = () => {
       const selectedGroup = selectedCategoryParts[0];
       const selectedCategoryName = selectedCategoryParts[1];
       
-      // Buscar arquivos OFX do período selecionado
+      // 1. Buscar arquivos OFX do período selecionado
       const ofxFilesQuery = query(
         collection(db, "ofxFiles"),
         where("userId", "==", auth.currentUser.uid),
@@ -260,7 +260,8 @@ const CategoryDetails = () => {
                   ...transaction,
                   date: new Date(transaction.date),
                   fileId: fileDoc.id,
-                  fileName: fileData.fileName
+                  fileName: fileData.fileName,
+                  source: 'ofx'
                 });
                 
                 totalAmountForCategory += transaction.amount;
@@ -270,6 +271,54 @@ const CategoryDetails = () => {
             console.error(`Erro ao processar arquivo OFX ${fileData.fileName}:`, error);
           }
         }
+      }
+      
+      // 2. NOVO: Buscar e processar entradas de dinheiro para o período e categoria
+      try {
+        const cashEntriesQuery = query(
+          collection(db, "cashEntries"),
+          where("userId", "==", auth.currentUser.uid),
+          where("period", "==", selectedPeriod)
+        );
+        
+        const cashEntriesSnapshot = await getDocs(cashEntriesQuery);
+        
+        // Processar cada entrada de dinheiro
+        cashEntriesSnapshot.forEach(doc => {
+          const entry = doc.data();
+          
+          // Verificar se a entrada tem categoria e valor
+          if (entry.categoryPath && typeof entry.amount === 'number') {
+            const pathParts = entry.categoryPath.split('.');
+            
+            if (pathParts.length >= 2) {
+              const entryGroup = pathParts[0];
+              const entryCategory = pathParts[1];
+              
+              // Verificar se a entrada corresponde à categoria selecionada
+              if (entryGroup === selectedGroup && entryCategory === selectedCategoryName) {
+                // Criar um objeto de transação com os dados da entrada de dinheiro
+                const cashTransaction = {
+                  id: doc.id,
+                  date: entry.transactionDate ? new Date(entry.transactionDate) : entry.createdAt.toDate(),
+                  description: entry.description || "Entrada de dinheiro",
+                  amount: entry.amount,
+                  category: selectedCategoryName,
+                  categoryPath: entry.categoryPath,
+                  groupName: entryGroup,
+                  source: 'cash'
+                };
+                
+                transactionsForCategory.push(cashTransaction);
+                totalAmountForCategory += entry.amount;
+                
+                console.log(`Entrada de dinheiro encontrada para a categoria ${selectedCategoryName}: ${formatCurrency(entry.amount)}`);
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Erro ao carregar entradas de dinheiro:", error);
       }
       
       // Ordenar transações por data (mais recente primeiro)
@@ -427,6 +476,7 @@ const CategoryDetails = () => {
                         <th>Data</th>
                         <th>Descrição</th>
                         <th>Valor</th>
+                        <th>Fonte</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -438,6 +488,13 @@ const CategoryDetails = () => {
                           </td>
                           <td className={transaction.amount >= 0 ? "amount-positive" : "amount-negative"}>
                             {formatCurrency(transaction.amount)}
+                          </td>
+                          <td>
+                            {transaction.source === 'cash' ? (
+                              <span className="source-badge cash-source">Entrada Manual</span>
+                            ) : (
+                              <span className="source-badge ofx-source">Extrato</span>
+                            )}
                           </td>
                         </tr>
                       ))}

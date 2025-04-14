@@ -168,6 +168,27 @@
     font-weight: 600;
   }
   
+  /* Badge styles for transaction source */
+  .source-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .cash-source {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+  }
+  
+  .ofx-source {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+  }
+  
   /* Paginação */
   .pagination {
     display: flex;
@@ -202,11 +223,8 @@
   
   /* Mensagem de nenhuma transação */
   .no-transactions {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    padding: 30px;
     text-align: center;
+    padding: 30px 0;
     color: #666;
   }
   

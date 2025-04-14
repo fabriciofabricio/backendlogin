@@ -1,5 +1,5 @@
 // src/components/Dashboard/Dashboard.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { auth, db, storage } from "../../firebase/config";
 import { 
   doc, 
@@ -33,58 +33,200 @@ const Dashboard = () => {
   const [periods, setPeriods] = useState([]);
   const [loadingFinancialData, setLoadingFinancialData] = useState(false);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (auth.currentUser) {
-        setUser(auth.currentUser);
+  // Carregar dados financeiros do período selecionado
+  const loadFinancialData = useCallback(async (period) => {
+    try {
+      setLoadingFinancialData(true);
+      
+      if (!auth.currentUser) return;
+      
+      // Resetar dados financeiros
+      const initialData = {
+        receitaBruta: 0,
+        custosDiretos: 0,
+        lucroBruto: 0,
+        resultadoFinal: 0,
+        despesasOperacionais: 0,
+        outrasReceitas: 0,
+        despesasSocios: 0,
+        investimentos: 0,
+        naoCategorizado: 0,
+        totalTransactions: 0
+      };
+      
+      // Buscar categorias e mapeamentos necessários para o processamento
+      const categoryMappingsDoc = await getDoc(doc(db, "categoryMappings", auth.currentUser.uid));
+      const categoryMappings = categoryMappingsDoc.exists() ? categoryMappingsDoc.data().mappings || {} : {};
+      
+      // Identificar mapeamentos específicos por ID de transação
+      const specificMappings = {};
+      
+      // Extrair mapeamentos específicos (para transações únicas)
+      Object.entries(categoryMappings).forEach(([key, mapping]) => {
+        if (mapping.isSpecificMapping && mapping.transactionId) {
+          specificMappings[mapping.transactionId] = mapping;
+        }
+      });
+      
+      // 1. Buscar arquivos OFX do período selecionado
+      const ofxFilesQuery = query(
+        collection(db, "ofxFiles"),
+        where("userId", "==", auth.currentUser.uid),
+        where("period", "==", period)
+      );
+      
+      const ofxFilesSnapshot = await getDocs(ofxFilesQuery);
+      
+      // Processar cada arquivo OFX
+      for (const fileDoc of ofxFilesSnapshot.docs) {
+        const fileData = fileDoc.data();
         
-        try {
-          // Buscar categorias do usuário
-          const userCategoriesDoc = await getDoc(doc(db, "userCategories", auth.currentUser.uid));
-          
-          if (userCategoriesDoc.exists()) {
-            const data = userCategoriesDoc.data();
-            setCategoriesData(data);
+        if (fileData.filePath) {
+          try {
+            const storageRef = ref(storage, fileData.filePath);
+            const blob = await getBlob(storageRef);
+            const fileContent = await blob.text();
+            const parseResult = parseOFXContent(fileContent);
+            const transactions = parseResult.transactions;
+            
+            // Somar todas as transações para o resultado final
+            for (const transaction of transactions) {
+              // Processar categorias para outros dados financeiros
+              const normalizedDescription = transaction.description.trim().toLowerCase();
+              let mainCategory = null;
+              let isCategorized = false;
+              
+              // Primeiro verificar se existe um mapeamento específico para esta transação
+              if (specificMappings[transaction.id]) {
+                const specificMapping = specificMappings[transaction.id];
+                mainCategory = specificMapping.groupName;
+                isCategorized = true;
+              } 
+              // Se não existir mapeamento específico, verificar mapeamento normal
+              else if (categoryMappings[normalizedDescription]) {
+                const mapping = categoryMappings[normalizedDescription];
+                if (!mapping.isSpecificMapping) { // Não é um mapeamento específico para outra transação
+                  mainCategory = mapping.groupName;
+                  isCategorized = true;
+                }
+              }
+              
+              // Categorizar transação com base no mapeamento
+              if (isCategorized) {
+                if (mainCategory === "RECEITA") {
+                  initialData.receitaBruta += transaction.amount;
+                } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
+                  initialData.custosDiretos += Math.abs(transaction.amount);
+                } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
+                  initialData.despesasOperacionais += Math.abs(transaction.amount);
+                } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
+                  initialData.outrasReceitas += transaction.amount;
+                } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
+                  initialData.despesasSocios += Math.abs(transaction.amount);
+                } else if (mainCategory === "(-) INVESTIMENTOS") {
+                  initialData.investimentos += Math.abs(transaction.amount);
+                }
+              } else {
+                // Transação não categorizada - incluir no valor não categorizado
+                initialData.naoCategorizado += transaction.amount;
+              }
+            }
+          } catch (error) {
+            console.error(`Erro ao processar arquivo OFX ${fileData.fileName}:`, error);
           }
-          
-          // Buscar transações recentes para o usuário atual
-          const transactionsQuery = query(
-            collection(db, "transactions"),
-            where("userId", "==", auth.currentUser.uid),
-            orderBy("date", "desc"),
-            limit(5)
-          );
-          
-          const transactionsSnapshot = await getDocs(transactionsQuery);
-          const transactionsData = [];
-          
-          transactionsSnapshot.forEach((doc) => {
-            const data = doc.data();
-            transactionsData.push({
-              id: doc.id,
-              ...data,
-              date: data.date?.toDate() || new Date()
-            });
-          });
-          
-          setRecentTransactions(transactionsData);
-          
-          // Buscar períodos disponíveis
-          await loadAvailablePeriods();
-        } catch (error) {
-          console.error("Erro ao buscar dados:", error);
-          setError("Houve um erro ao carregar seus dados. Por favor, tente novamente.");
         }
       }
       
-      setLoading(false);
-    };
+      // 2. NOVO: Buscar e processar entradas de dinheiro para o período
+      try {
+        const cashEntriesQuery = query(
+          collection(db, "cashEntries"),
+          where("userId", "==", auth.currentUser.uid),
+          where("period", "==", period)
+        );
+        
+        const cashEntriesSnapshot = await getDocs(cashEntriesQuery);
+        
+        // Processar cada entrada de dinheiro
+        cashEntriesSnapshot.forEach(doc => {
+          const entry = doc.data();
+          
+          // Verificar se a entrada tem categoria e valor
+          if (entry.categoryPath && typeof entry.amount === 'number') {
+            const pathParts = entry.categoryPath.split('.');
+            
+            if (pathParts.length >= 2) {
+              const mainCategory = pathParts[0];
+              
+              // Categorizar com base no grupo principal
+              if (mainCategory === "RECEITA") {
+                initialData.receitaBruta += entry.amount;
+              } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
+                initialData.custosDiretos += Math.abs(entry.amount);
+              } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
+                initialData.despesasOperacionais += Math.abs(entry.amount);
+              } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
+                initialData.outrasReceitas += entry.amount;
+              } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
+                initialData.despesasSocios += Math.abs(entry.amount);
+              } else if (mainCategory === "(-) INVESTIMENTOS") {
+                initialData.investimentos += Math.abs(entry.amount);
+              }
+              
+              console.log(`Entrada de dinheiro processada no Dashboard: ${formatCurrency(entry.amount)} em ${mainCategory}`);
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Erro ao carregar entradas de dinheiro:", error);
+      }
+      
+      // Calcular valores derivados conforme DRE
+      initialData.lucroBruto = initialData.receitaBruta - initialData.custosDiretos;
+      const resultadoOperacional = initialData.lucroBruto - initialData.despesasOperacionais + initialData.outrasReceitas;
+      const resultadoAntesIR = resultadoOperacional - initialData.despesasSocios;
+      
+      // Incluir transações não categorizadas no resultado final (mesma lógica do DRE)
+      initialData.resultadoFinal = resultadoAntesIR - initialData.investimentos + initialData.naoCategorizado;
+      
+      // Adicionar log para depuração
+      console.log("Valores financeiros calculados:", {
+        periodo: period,
+        receitaBruta: initialData.receitaBruta,
+        custosDiretos: initialData.custosDiretos,
+        lucroBruto: initialData.lucroBruto,
+        despesasOperacionais: initialData.despesasOperacionais,
+        outrasReceitas: initialData.outrasReceitas,
+        resultadoOperacional: resultadoOperacional,
+        despesasSocios: initialData.despesasSocios,
+        resultadoAntesIR: resultadoAntesIR,
+        investimentos: initialData.investimentos,
+        naoCategorizado: initialData.naoCategorizado,
+        resultadoFinal: initialData.resultadoFinal,
+      });
+      
+      // Calcular percentuais
+      if (initialData.receitaBruta > 0) {
+        initialData.custosDiretosPercent = (initialData.custosDiretos / initialData.receitaBruta) * 100;
+        initialData.lucroBrutoPercent = (initialData.lucroBruto / initialData.receitaBruta) * 100;
+        initialData.resultadoFinalPercent = (initialData.resultadoFinal / initialData.receitaBruta) * 100;
+      } else {
+        initialData.custosDiretosPercent = 0;
+        initialData.lucroBrutoPercent = 0;
+        initialData.resultadoFinalPercent = 0;
+      }
+      
+      setFinancialData(initialData);
+    } catch (error) {
+      console.error("Erro ao carregar dados financeiros:", error);
+      setError("Não foi possível carregar os dados financeiros para o período selecionado.");
+    } finally {
+      setLoadingFinancialData(false);
+    }
+  }, []);  // Empty dependency array as this function doesn't rely on any component state
 
-    fetchUserData();
-  }, []);
-
-  // Buscar períodos disponíveis
-  const loadAvailablePeriods = async () => {
+  // Buscar períodos disponíveis - make the function memoized
+  const loadAvailablePeriods = useCallback(async () => {
     try {
       if (!auth.currentUser) return;
       
@@ -140,158 +282,57 @@ const Dashboard = () => {
       console.error("Erro ao carregar períodos:", error);
       setError("Não foi possível carregar os períodos disponíveis.");
     }
-  };
+  }, [loadFinancialData]);  // Added loadFinancialData to dependencies
 
-  // Carregar dados financeiros do período selecionado
-  const loadFinancialData = async (period) => {
-    try {
-      setLoadingFinancialData(true);
-      
-      if (!auth.currentUser) return;
-      
-      // Resetar dados financeiros
-      const initialData = {
-        receitaBruta: 0,
-        custosDiretos: 0,
-        lucroBruto: 0,
-        resultadoFinal: 0,
-        despesasOperacionais: 0,
-        outrasReceitas: 0,
-        despesasSocios: 0,
-        investimentos: 0,
-        naoCategorizado: 0,
-        totalTransactions: 0
-      };
-      
-      // Buscar categorias e mapeamentos necessários para o processamento
-      const categoryMappingsDoc = await getDoc(doc(db, "categoryMappings", auth.currentUser.uid));
-      const categoryMappings = categoryMappingsDoc.exists() ? categoryMappingsDoc.data().mappings || {} : {};
-      
-      // Identificar mapeamentos específicos por ID de transação
-      const specificMappings = {};
-      
-      // Extrair mapeamentos específicos (para transações únicas)
-      Object.entries(categoryMappings).forEach(([key, mapping]) => {
-        if (mapping.isSpecificMapping && mapping.transactionId) {
-          specificMappings[mapping.transactionId] = mapping;
-        }
-      });
-      
-      // Buscar arquivos OFX do período selecionado
-      const ofxFilesQuery = query(
-        collection(db, "ofxFiles"),
-        where("userId", "==", auth.currentUser.uid),
-        where("period", "==", period)
-      );
-      
-      const ofxFilesSnapshot = await getDocs(ofxFilesQuery);
-      let totalValue = 0; // Soma total de todas as transações
-      
-      // Processar cada arquivo OFX
-      for (const fileDoc of ofxFilesSnapshot.docs) {
-        const fileData = fileDoc.data();
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (auth.currentUser) {
+        setUser(auth.currentUser);
         
-        if (fileData.filePath) {
-          try {
-            const storageRef = ref(storage, fileData.filePath);
-            const blob = await getBlob(storageRef);
-            const fileContent = await blob.text();
-            const parseResult = parseOFXContent(fileContent);
-            const transactions = parseResult.transactions;
-            
-            // Somar todas as transações para o resultado final
-            for (const transaction of transactions) {
-              totalValue += transaction.amount;
-              
-              // Processar categorias para outros dados financeiros
-              const normalizedDescription = transaction.description.trim().toLowerCase();
-              let mainCategory = null;
-              let isCategorized = false;
-              
-              // Primeiro verificar se existe um mapeamento específico para esta transação
-              if (specificMappings[transaction.id]) {
-                const specificMapping = specificMappings[transaction.id];
-                mainCategory = specificMapping.groupName;
-                isCategorized = true;
-              } 
-              // Se não existir mapeamento específico, verificar mapeamento normal
-              else if (categoryMappings[normalizedDescription]) {
-                const mapping = categoryMappings[normalizedDescription];
-                if (!mapping.isSpecificMapping) { // Não é um mapeamento específico para outra transação
-                  mainCategory = mapping.groupName;
-                  isCategorized = true;
-                }
-              }
-              
-              // Categorizar transação com base no mapeamento
-              if (isCategorized) {
-                if (mainCategory === "RECEITA") {
-                  initialData.receitaBruta += transaction.amount;
-                } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
-                  initialData.custosDiretos += Math.abs(transaction.amount);
-                } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
-                  initialData.despesasOperacionais += Math.abs(transaction.amount);
-                } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
-                  initialData.outrasReceitas += transaction.amount;
-                } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
-                  initialData.despesasSocios += Math.abs(transaction.amount);
-                } else if (mainCategory === "(-) INVESTIMENTOS") {
-                  initialData.investimentos += Math.abs(transaction.amount);
-                }
-              } else {
-                // Transação não categorizada - incluir no valor não categorizado
-                initialData.naoCategorizado += transaction.amount;
-              }
-            }
-          } catch (error) {
-            console.error(`Erro ao processar arquivo OFX ${fileData.fileName}:`, error);
+        try {
+          // Buscar categorias do usuário
+          const userCategoriesDoc = await getDoc(doc(db, "userCategories", auth.currentUser.uid));
+          
+          if (userCategoriesDoc.exists()) {
+            const data = userCategoriesDoc.data();
+            setCategoriesData(data);
           }
+          
+          // Buscar transações recentes para o usuário atual
+          const transactionsQuery = query(
+            collection(db, "transactions"),
+            where("userId", "==", auth.currentUser.uid),
+            orderBy("date", "desc"),
+            limit(5)
+          );
+          
+          const transactionsSnapshot = await getDocs(transactionsQuery);
+          const transactionsData = [];
+          
+          transactionsSnapshot.forEach((doc) => {
+            const data = doc.data();
+            transactionsData.push({
+              id: doc.id,
+              ...data,
+              date: data.date?.toDate() || new Date()
+            });
+          });
+          
+          setRecentTransactions(transactionsData);
+          
+          // Buscar períodos disponíveis
+          await loadAvailablePeriods();
+        } catch (error) {
+          console.error("Erro ao buscar dados:", error);
+          setError("Houve um erro ao carregar seus dados. Por favor, tente novamente.");
         }
       }
       
-      // Calcular valores derivados conforme DRE
-      initialData.lucroBruto = initialData.receitaBruta - initialData.custosDiretos;
-      const resultadoOperacional = initialData.lucroBruto - initialData.despesasOperacionais + initialData.outrasReceitas;
-      const resultadoAntesIR = resultadoOperacional - initialData.despesasSocios;
-      
-      // Incluir transações não categorizadas no resultado final (mesma lógica do DRE)
-      initialData.resultadoFinal = resultadoAntesIR - initialData.investimentos + initialData.naoCategorizado;
-      
-      // Adicionar log para depuração
-      console.log("Valores financeiros calculados:", {
-        periodo: period,
-        receitaBruta: initialData.receitaBruta,
-        custosDiretos: initialData.custosDiretos,
-        lucroBruto: initialData.lucroBruto,
-        despesasOperacionais: initialData.despesasOperacionais,
-        outrasReceitas: initialData.outrasReceitas,
-        resultadoOperacional: resultadoOperacional,
-        despesasSocios: initialData.despesasSocios,
-        resultadoAntesIR: resultadoAntesIR,
-        investimentos: initialData.investimentos,
-        naoCategorizado: initialData.naoCategorizado,
-        resultadoFinal: initialData.resultadoFinal,
-      });
-      
-      // Calcular percentuais
-      if (initialData.receitaBruta > 0) {
-        initialData.custosDiretosPercent = (initialData.custosDiretos / initialData.receitaBruta) * 100;
-        initialData.lucroBrutoPercent = (initialData.lucroBruto / initialData.receitaBruta) * 100;
-        initialData.resultadoFinalPercent = (initialData.resultadoFinal / initialData.receitaBruta) * 100;
-      } else {
-        initialData.custosDiretosPercent = 0;
-        initialData.lucroBrutoPercent = 0;
-        initialData.resultadoFinalPercent = 0;
-      }
-      
-      setFinancialData(initialData);
-    } catch (error) {
-      console.error("Erro ao carregar dados financeiros:", error);
-      setError("Não foi possível carregar os dados financeiros para o período selecionado.");
-    } finally {
-      setLoadingFinancialData(false);
-    }
-  };
+      setLoading(false);
+    };
+
+    fetchUserData();
+  }, [loadAvailablePeriods]);
 
   // Função para tratar mudança de período
   const handlePeriodChange = async (event) => {
@@ -323,7 +364,7 @@ const Dashboard = () => {
     return new Intl.DateTimeFormat('pt-BR').format(date);
   };
 
-  // Organizar as categorias em grupos e subgrupos
+  // Organizar as categorias em grupos e subgrupos - NOW USED IN THE COMPONENT RENDERING
   const organizeCategories = () => {
     if (!categoriesData || !categoriesData.categories) {
       return {
@@ -390,8 +431,6 @@ const Dashboard = () => {
     );
   }
 
-  const { groupedCategories, totalCategories } = organizeCategories();
-
   return (
     <MainLayout userName={user?.displayName || "Usuário"}>
       {error && (
@@ -403,7 +442,7 @@ const Dashboard = () => {
       {/* Seletor de período */}
       <div className="period-selector-container">
         <div className="period-selector-header">
-          <h2>Dados Financeiros</h2>
+          <h2>Dados Financeiros {periodLabel && `- ${periodLabel}`}</h2>
           <div className="period-dropdown">
             <label htmlFor="period-select">Período: </label>
             <select
@@ -530,6 +569,53 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Adicionar nova seção para utilizar a função organizeCategories */}
+      {categoriesData && (
+        <div className="categories-section">
+          <div className="section-header">
+            <h2 className="section-title">Categorias</h2>
+          </div>
+          <div className="categories-summary">
+            {(() => {
+              const { groupedCategories, totalCategories } = organizeCategories();
+              
+              if (totalCategories === 0) {
+                return <p>Nenhuma categoria configurada.</p>;
+              }
+              
+              // Mostrar apenas o número de categorias por grupo para simplificar
+              return (
+                <div className="category-groups-list">
+                  <p>Total de {totalCategories} categorias configuradas nos seguintes grupos:</p>
+                  <ul>
+                    {Object.entries(groupedCategories)
+                      .sort(([, a], [, b]) => a.order - b.order)
+                      .map(([groupName, group]) => {
+                        const normalCount = group.normalCategories.length;
+                        const subGroupCount = Object.keys(group.subGroups).length;
+                        let subCatCount = 0;
+                        
+                        Object.values(group.subGroups).forEach(cats => {
+                          subCatCount += cats.length;
+                        });
+                        
+                        const totalGroupCount = normalCount + subCatCount;
+                        
+                        return (
+                          <li key={groupName}>
+                            <strong>{groupName}:</strong> {totalGroupCount} categorias
+                            {subGroupCount > 0 && ` (${subGroupCount} subgrupos)`}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Transações recentes */}
       {recentTransactions.length > 0 && (

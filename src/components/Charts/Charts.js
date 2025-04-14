@@ -131,15 +131,6 @@ const Charts = () => {
   // Função para calcular dados financeiros de um período específico
   const calculateFinancialDataForPeriod = async (period, periodLabel) => {
     try {
-      // Buscar arquivos OFX do período
-      const ofxFilesQuery = query(
-        collection(db, "ofxFiles"),
-        where("userId", "==", auth.currentUser.uid),
-        where("period", "==", period)
-      );
-      
-      const ofxFilesSnapshot = await getDocs(ofxFilesQuery);
-      
       // Inicializar valores financeiros
       let totalValue = 0;
       let receitaBruta = 0;
@@ -150,17 +141,39 @@ const Charts = () => {
       let investimentos = 0;
       let naoCategorizado = 0;
       
-      // Se não houver arquivos, retornar valores zerados
+      // 1. Buscar arquivos OFX do período
+      const ofxFilesQuery = query(
+        collection(db, "ofxFiles"),
+        where("userId", "==", auth.currentUser.uid),
+        where("period", "==", period)
+      );
+      
+      const ofxFilesSnapshot = await getDocs(ofxFilesQuery);
+      
+      // Se não houver arquivos, verificamos se existem entradas de dinheiro
+      // antes de retornar valores zerados
       if (ofxFilesSnapshot.empty) {
-        return {
-          period,
-          periodLabel,
-          receitaBruta: 0,
-          custosDiretos: 0,
-          lucroBruto: 0,
-          despesasOperacionais: 0,
-          resultadoFinal: 0
-        };
+        // Verificar se existem entradas de dinheiro para este período
+        const cashEntriesQuery = query(
+          collection(db, "cashEntries"),
+          where("userId", "==", auth.currentUser.uid),
+          where("period", "==", period)
+        );
+        
+        const cashEntriesSnapshot = await getDocs(cashEntriesQuery);
+        
+        if (cashEntriesSnapshot.empty) {
+          // Se não há arquivos OFX nem entradas de dinheiro, retornamos zeros
+          return {
+            period,
+            periodLabel,
+            receitaBruta: 0,
+            custosDiretos: 0,
+            lucroBruto: 0,
+            despesasOperacionais: 0,
+            resultadoFinal: 0
+          };
+        }
       }
       
       // Buscar mapeamentos de categorias para processar as transações corretamente
@@ -177,7 +190,7 @@ const Charts = () => {
         }
       });
       
-      // Processar as transações de cada arquivo OFX
+      // 2. Processar as transações de cada arquivo OFX
       for (const fileDoc of ofxFilesSnapshot.docs) {
         const fileData = fileDoc.data();
         
@@ -246,6 +259,58 @@ const Charts = () => {
         } catch (error) {
           console.error(`Erro ao processar arquivo OFX ${fileData.fileName}:`, error);
         }
+      }
+
+      // 3. NOVO: Buscar e processar entradas de dinheiro para o período
+      try {
+        const cashEntriesQuery = query(
+          collection(db, "cashEntries"),
+          where("userId", "==", auth.currentUser.uid),
+          where("period", "==", period)
+        );
+        
+        const cashEntriesSnapshot = await getDocs(cashEntriesQuery);
+        
+        // Processar cada entrada de dinheiro
+        cashEntriesSnapshot.forEach(doc => {
+          const entry = doc.data();
+          
+          // Verificar se a entrada tem categoria e valor
+          if (entry.categoryPath && typeof entry.amount === 'number') {
+            const pathParts = entry.categoryPath.split('.');
+            
+            if (pathParts.length >= 2) {
+              const mainCategory = pathParts[0];
+              
+              // Adicionar ao total geral
+              totalValue += entry.amount;
+              
+              // Categorizar com base no grupo principal
+              if (mainCategory === "RECEITA") {
+                receitaBruta += entry.amount;
+              } 
+              else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
+                custosDiretos += Math.abs(entry.amount);
+              } 
+              else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
+                despesasOperacionais += Math.abs(entry.amount);
+              }
+              else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
+                outrasReceitas += entry.amount;
+              }
+              else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
+                despesasSocios += Math.abs(entry.amount);
+              }
+              else if (mainCategory === "(-) INVESTIMENTOS") {
+                investimentos += Math.abs(entry.amount);
+              }
+              
+              console.log(`Entrada de dinheiro processada no Charts para período ${periodLabel}: ${formatCurrency(entry.amount)} em ${mainCategory}`);
+            }
+          }
+        });
+      } catch (error) {
+        console.error(`Erro ao processar entradas de dinheiro para o período ${period}:`, error);
       }
       
       // Calcular valores derivados usando a mesma lógica do DRE
