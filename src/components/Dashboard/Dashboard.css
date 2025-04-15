@@ -673,6 +673,26 @@
   border: 1px dashed #bdbdbd;
 }
 
+/* Card background colors based on result */
+.summary-period-card.result-positive {
+  background-color: #e8f5e9; /* Light green background */
+
+}
+
+.summary-period-card.result-negative {
+  background-color: #ffebee; /* Light red background */
+
+}
+
+/* You might want to adjust other card properties to match the new styling */
+.summary-period-card.result-positive .period-card-header {
+  background-color: #d9eed9;
+}
+
+.summary-period-card.result-negative .period-card-header {
+  background-color: #ffdfe2;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .dashboard-header {

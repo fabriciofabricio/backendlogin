@@ -806,58 +806,68 @@ const Dashboard = () => {
           <>
             {/* Summary Cards View */}
             <div className="summary-cards-container">
-              {periodsSummary.map((period, index) => (
-                <div key={index} className="summary-period-card">
-                  <div className="period-card-header">
-                    <span className="period-name">{period.periodLabel}</span>
-                    <span className={`period-result ${
-                      excludeAportes ? 
-                        (period.resultadoFinalSemAportes >= 0 ? 'positive' : 'negative') : 
-                        (period.resultadoFinal >= 0 ? 'positive' : 'negative')
-                    }`}>
-                      {formatCurrency(excludeAportes ? period.resultadoFinalSemAportes : period.resultadoFinal)}
-                    </span>
-                  </div>
+              {periodsSummary.map((period, index) => {
+                // Determine if the result is positive based on excludeAportes setting
+                const isPositiveResult = excludeAportes ? 
+                  period.resultadoFinalSemAportes >= 0 : 
+                  period.resultadoFinal >= 0;
                   
-                  <div className="period-card-details">
-                    <div className="period-metric">
-                      <span className="metric-label">Receita</span>
-                      <span className="metric-value positive">{formatCurrency(period.receitaBruta)}</span>
-                    </div>
-                    <div className="period-metric">
-                      <span className="metric-label">Custos Totais</span>
-                      <span className="metric-value negative">{formatCurrency(period.custosTotal)}</span>
-                    </div>
-                    <div className="period-metric">
-                      <span className="metric-label">Lucro Bruto</span>
-                      <span className={`metric-value ${period.lucroBruto >= 0 ? 'positive' : 'negative'}`}>
-                        {formatCurrency(period.lucroBruto)}
+                return (
+                  <div 
+                    key={index} 
+                    className={`summary-period-card ${isPositiveResult ? 'result-positive' : 'result-negative'}`}
+                  >
+                    <div className="period-card-header">
+                      <span className="period-name">{period.periodLabel}</span>
+                      <span className={`period-result ${
+                        excludeAportes ? 
+                          (period.resultadoFinalSemAportes >= 0 ? 'positive' : 'negative') : 
+                          (period.resultadoFinal >= 0 ? 'positive' : 'negative')
+                      }`}>
+                        {formatCurrency(excludeAportes ? period.resultadoFinalSemAportes : period.resultadoFinal)}
                       </span>
                     </div>
                     
-                    {excludeAportes && period.aportesValue > 0 && (
-                      <div className="period-metric aportes">
-                        <span className="metric-label">Aportes</span>
-                        <span className="metric-value">{formatCurrency(period.aportesValue)}</span>
+                    <div className="period-card-details">
+                      <div className="period-metric">
+                        <span className="metric-label">Receita</span>
+                        <span className="metric-value positive">{formatCurrency(period.receitaBruta)}</span>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="period-card-chart">
-                    <div className="micro-chart">
-                      <div className="chart-bar">
-                        <div 
-                          className="chart-fill" 
-                          style={{ 
-                            width: `${Math.min(100, Math.max(0, ((period.receitaBruta - period.custosTotal) / period.receitaBruta) * 100 || 0))}%`,
-                            backgroundColor: (period.receitaBruta - period.custosTotal) >= 0 ? '#4caf50' : '#f44336'
-                          }}
-                        ></div>
+                      <div className="period-metric">
+                        <span className="metric-label">Custos Totais</span>
+                        <span className="metric-value negative">{formatCurrency(period.custosTotal)}</span>
+                      </div>
+                      <div className="period-metric">
+                        <span className="metric-label">Lucro Bruto</span>
+                        <span className={`metric-value ${period.lucroBruto >= 0 ? 'positive' : 'negative'}`}>
+                          {formatCurrency(period.lucroBruto)}
+                        </span>
+                      </div>
+                      
+                      {excludeAportes && period.aportesValue > 0 && (
+                        <div className="period-metric aportes">
+                          <span className="metric-label">Aportes</span>
+                          <span className="metric-value">{formatCurrency(period.aportesValue)}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="period-card-chart">
+                      <div className="micro-chart">
+                        <div className="chart-bar">
+                          <div 
+                            className="chart-fill" 
+                            style={{ 
+                              width: `${Math.min(100, Math.max(0, ((period.receitaBruta - period.custosTotal) / period.receitaBruta) * 100 || 0))}%`,
+                              backgroundColor: (period.receitaBruta - period.custosTotal) >= 0 ? '#4caf50' : '#f44336'
+                            }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Summary Table */}
