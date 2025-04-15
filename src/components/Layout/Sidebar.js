@@ -128,30 +128,6 @@ const Sidebar = () => {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/export" className={({ isActive }) => isActive ? "active" : ""}>
-                <span className="menu-icon">
-                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                </span>
-                <span className="menu-text">Exportar DRE</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/select-categories" className={({ isActive }) => isActive ? "active" : ""}>
-                <span className="menu-icon">
-                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
-                  </svg>
-                </span>
-                <span className="menu-text">Salvar Categorias</span>
-              </NavLink>
-            </li>
-            <li>
               <NavLink to="/settings" className={({ isActive }) => isActive ? "active" : ""}>
                 <span className="menu-icon">
                   <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">

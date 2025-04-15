@@ -25,7 +25,8 @@ const Dashboard = () => {
     receitaBruta: 0,
     custosDiretos: 0,
     lucroBruto: 0,
-    resultadoFinal: 0
+    resultadoFinal: 0,
+    despesasOperacionais: 0
   });
   const [currentPeriod, setCurrentPeriod] = useState("");
   const [periodLabel, setPeriodLabel] = useState("");
@@ -115,20 +116,23 @@ const Dashboard = () => {
                 }
               }
               
+              // Adicionar ao total geral da soma
+              initialData.totalTransactions += transaction.amount;
+              
               // Categorizar transação com base no mapeamento
               if (isCategorized) {
                 if (mainCategory === "RECEITA") {
                   initialData.receitaBruta += transaction.amount;
                 } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
-                  initialData.custosDiretos += Math.abs(transaction.amount);
+                  initialData.custosDiretos += transaction.amount; // Não usa mais Math.abs aqui
                 } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
-                  initialData.despesasOperacionais += Math.abs(transaction.amount);
+                  initialData.despesasOperacionais += transaction.amount; // Não usa mais Math.abs aqui
                 } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                   initialData.outrasReceitas += transaction.amount;
                 } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
-                  initialData.despesasSocios += Math.abs(transaction.amount);
+                  initialData.despesasSocios += transaction.amount; // Não usa mais Math.abs aqui
                 } else if (mainCategory === "(-) INVESTIMENTOS") {
-                  initialData.investimentos += Math.abs(transaction.amount);
+                  initialData.investimentos += transaction.amount; // Não usa mais Math.abs aqui
                 }
               } else {
                 // Transação não categorizada - incluir no valor não categorizado
@@ -162,19 +166,22 @@ const Dashboard = () => {
             if (pathParts.length >= 2) {
               const mainCategory = pathParts[0];
               
+              // Adicionar ao total geral da soma
+              initialData.totalTransactions += entry.amount;
+              
               // Categorizar com base no grupo principal
               if (mainCategory === "RECEITA") {
                 initialData.receitaBruta += entry.amount;
               } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
-                initialData.custosDiretos += Math.abs(entry.amount);
+                initialData.custosDiretos += entry.amount; // Normalmente é positivo para entradas de dinheiro
               } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
-                initialData.despesasOperacionais += Math.abs(entry.amount);
+                initialData.despesasOperacionais += entry.amount;
               } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                 initialData.outrasReceitas += entry.amount;
               } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
-                initialData.despesasSocios += Math.abs(entry.amount);
+                initialData.despesasSocios += entry.amount;
               } else if (mainCategory === "(-) INVESTIMENTOS") {
-                initialData.investimentos += Math.abs(entry.amount);
+                initialData.investimentos += entry.amount;
               }
               
               console.log(`Entrada de dinheiro processada no Dashboard: ${formatCurrency(entry.amount)} em ${mainCategory}`);
@@ -185,13 +192,13 @@ const Dashboard = () => {
         console.error("Erro ao carregar entradas de dinheiro:", error);
       }
       
-      // Calcular valores derivados conforme DRE
-      initialData.lucroBruto = initialData.receitaBruta - initialData.custosDiretos;
-      const resultadoOperacional = initialData.lucroBruto - initialData.despesasOperacionais + initialData.outrasReceitas;
-      const resultadoAntesIR = resultadoOperacional - initialData.despesasSocios;
+      // Calcular valores derivados 
+      initialData.lucroBruto = initialData.receitaBruta + initialData.custosDiretos; // Valores negativos já estão com sinal
+      const resultadoOperacional = initialData.lucroBruto + initialData.despesasOperacionais + initialData.outrasReceitas;
+      const resultadoAntesIR = resultadoOperacional + initialData.despesasSocios;
       
-      // Incluir transações não categorizadas no resultado final (mesma lógica do DRE)
-      initialData.resultadoFinal = resultadoAntesIR - initialData.investimentos + initialData.naoCategorizado;
+      // O resultado final é simplesmente a soma de todas as transações
+      initialData.resultadoFinal = initialData.totalTransactions;
       
       // Adicionar log para depuração
       console.log("Valores financeiros calculados:", {
@@ -207,17 +214,20 @@ const Dashboard = () => {
         investimentos: initialData.investimentos,
         naoCategorizado: initialData.naoCategorizado,
         resultadoFinal: initialData.resultadoFinal,
+        totalTransactions: initialData.totalTransactions,
       });
       
       // Calcular percentuais
       if (initialData.receitaBruta > 0) {
-        initialData.custosDiretosPercent = (initialData.custosDiretos / initialData.receitaBruta) * 100;
+        initialData.custosDiretosPercent = (Math.abs(initialData.custosDiretos) / initialData.receitaBruta) * 100;
         initialData.lucroBrutoPercent = (initialData.lucroBruto / initialData.receitaBruta) * 100;
         initialData.resultadoFinalPercent = (initialData.resultadoFinal / initialData.receitaBruta) * 100;
+        initialData.despesasOperacionaisPercent = (Math.abs(initialData.despesasOperacionais) / initialData.receitaBruta) * 100;
       } else {
         initialData.custosDiretosPercent = 0;
         initialData.lucroBrutoPercent = 0;
         initialData.resultadoFinalPercent = 0;
+        initialData.despesasOperacionaisPercent = 0;
       }
       
       setFinancialData(initialData);
@@ -229,7 +239,7 @@ const Dashboard = () => {
     }
   }, []);  // Empty dependency array as this function doesn't rely on any component state
 
-  // Nueva función para cargar el resumen de períodos
+  // Function to load period summary
   const loadPeriodsSummary = useCallback(async () => {
     try {
       setLoadingPeriodsSummary(true);
@@ -258,7 +268,8 @@ const Dashboard = () => {
           naoCategorizado: 0,
           resultadoFinal: 0,
           resultadoFinalSemAportes: 0,
-          aportesValue: 0
+          aportesValue: 0,
+          totalTransactions: 0
         };
         
         // Get category mappings
@@ -302,6 +313,9 @@ const Dashboard = () => {
                 let isAporte = false;
                 let categoryPath = "";
                 
+                // Adicionar à soma total das transações
+                initialData.totalTransactions += transaction.amount;
+                
                 // Check if there's a specific mapping for this transaction
                 if (specificMappings[transaction.id]) {
                   const specificMapping = specificMappings[transaction.id];
@@ -331,15 +345,15 @@ const Dashboard = () => {
                   if (mainCategory === "RECEITA") {
                     initialData.receitaBruta += transaction.amount;
                   } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
-                    initialData.custosDiretos += Math.abs(transaction.amount);
+                    initialData.custosDiretos += transaction.amount;
                   } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
-                    initialData.despesasOperacionais += Math.abs(transaction.amount);
+                    initialData.despesasOperacionais += transaction.amount;
                   } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                     initialData.outrasReceitas += transaction.amount;
                   } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
-                    initialData.despesasSocios += Math.abs(transaction.amount);
+                    initialData.despesasSocios += transaction.amount;
                   } else if (mainCategory === "(-) INVESTIMENTOS") {
-                    initialData.investimentos += Math.abs(transaction.amount);
+                    initialData.investimentos += transaction.amount;
                   }
                 } else {
                   // Uncategorized transaction
@@ -374,6 +388,9 @@ const Dashboard = () => {
                 const mainCategory = pathParts[0];
                 const categoryName = pathParts[1];
                 
+                // Adicionar à soma total das transações
+                initialData.totalTransactions += entry.amount;
+                
                 // Check if this is an "aporte de sócio"
                 if (entry.categoryPath.toLowerCase().includes('aporte') || 
                     (entry.description && entry.description.toLowerCase().includes('aporte')) ||
@@ -385,15 +402,15 @@ const Dashboard = () => {
                 if (mainCategory === "RECEITA") {
                   initialData.receitaBruta += entry.amount;
                 } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
-                  initialData.custosDiretos += Math.abs(entry.amount);
+                  initialData.custosDiretos += entry.amount;
                 } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
-                  initialData.despesasOperacionais += Math.abs(entry.amount);
+                  initialData.despesasOperacionais += entry.amount;
                 } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                   initialData.outrasReceitas += entry.amount;
                 } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
-                  initialData.despesasSocios += Math.abs(entry.amount);
+                  initialData.despesasSocios += entry.amount;
                 } else if (mainCategory === "(-) INVESTIMENTOS") {
-                  initialData.investimentos += Math.abs(entry.amount);
+                  initialData.investimentos += entry.amount;
                 }
               }
             }
@@ -402,22 +419,20 @@ const Dashboard = () => {
           console.error(`Erro ao processar entradas de dinheiro para o período ${period.value}:`, error);
         }
         
-        // Calculate derived values as in DRE
-        initialData.lucroBruto = initialData.receitaBruta - initialData.custosDiretos;
-        const resultadoOperacional = initialData.lucroBruto - initialData.despesasOperacionais + initialData.outrasReceitas;
-        const resultadoAntesIR = resultadoOperacional - initialData.despesasSocios;
-        
-        // Include uncategorized transactions in the final result
-        initialData.resultadoFinal = resultadoAntesIR - initialData.investimentos + initialData.naoCategorizado;
+        // Calculate derived values using the sum of all transactions
+        initialData.resultadoFinal = initialData.totalTransactions;
         
         // Calculate result without "aportes"
         initialData.resultadoFinalSemAportes = initialData.resultadoFinal - initialData.aportesValue;
         
         // Calculate total costs (all expenses combined)
-        initialData.custosTotal = initialData.custosDiretos + 
-                                  initialData.despesasOperacionais + 
-                                  initialData.despesasSocios + 
-                                  initialData.investimentos;
+        initialData.custosTotal = Math.abs(initialData.custosDiretos) + 
+                                  Math.abs(initialData.despesasOperacionais) + 
+                                  Math.abs(initialData.despesasSocios) + 
+                                  Math.abs(initialData.investimentos);
+        
+        // Opcionalmente, atualizar o valor de lucro bruto para display
+        initialData.lucroBruto = initialData.receitaBruta + initialData.custosDiretos;
         
         summaryResults.push(initialData);
       }
@@ -431,7 +446,7 @@ const Dashboard = () => {
     }
   }, [periods]);
 
-  // Buscar períodos disponíveis - make the function memoized
+  // Buscar períodos disponíveis
   const loadAvailablePeriods = useCallback(async () => {
     try {
       if (!auth.currentUser) return;
@@ -488,7 +503,7 @@ const Dashboard = () => {
       console.error("Erro ao carregar períodos:", error);
       setError("Não foi possível carregar os períodos disponíveis.");
     }
-  }, [loadFinancialData]);  // Added loadFinancialData to dependencies
+  }, [loadFinancialData]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -615,7 +630,7 @@ const Dashboard = () => {
       </div>
 
       {/* Cards Financeiros */}
-      <div className="card-container">
+      <div className="card-container" style={{marginBottom: "20px"}}>
         <div className="fin-card fin-card-receipts">
           <div className="fin-card-title">RECEITAS</div>
           <div className="fin-card-value">
@@ -637,7 +652,7 @@ const Dashboard = () => {
             {loadingFinancialData ? (
               <span className="loading-text">Carregando...</span>
             ) : (
-              formatCurrency(financialData.custosDiretos)
+              formatCurrency(Math.abs(financialData.custosDiretos))
             )}
           </div>
           <div className="fin-card-description">Total de custos diretos</div>
@@ -655,6 +670,35 @@ const Dashboard = () => {
               {loadingFinancialData ? 
                 "Calculando..." : 
                 `${Math.round(financialData.custosDiretosPercent || 0)}% das receitas`
+              }
+            </div>
+          </div>
+        </div>
+
+        <div className="fin-card" style={{borderLeftColor: '#f44336'}}>
+          <div className="fin-card-title">DESPESAS OPERACIONAIS</div>
+          <div className="fin-card-value">
+            {loadingFinancialData ? (
+              <span className="loading-text">Carregando...</span>
+            ) : (
+              formatCurrency(Math.abs(financialData.despesasOperacionais))
+            )}
+          </div>
+          <div className="fin-card-description">Total de despesas operacionais</div>
+          <div className="fin-card-footer">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ 
+                  width: `${financialData.despesasOperacionaisPercent}%`, 
+                  backgroundColor: '#f44336' 
+                }}
+              ></div>
+            </div>
+            <div className="progress-text">
+              {loadingFinancialData ? 
+                "Calculando..." : 
+                `${Math.round(financialData.despesasOperacionaisPercent || 0)}% das receitas`
               }
             </div>
           </div>
@@ -719,7 +763,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Period Summary Section - New */}
+      {/* Period Summary Section */}
       <div className="period-summary-section">
         <div className="section-header">
           <h2>Evolução dos Resultados</h2>

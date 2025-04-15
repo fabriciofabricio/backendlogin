@@ -154,7 +154,8 @@ const DREReport = () => {
       mainCategories.forEach(category => {
         dreStructure[category] = {
           total: 0,
-          items: {}
+          items: {},
+          rawTotal: 0 // Para armazenar o valor bruto sem alterações
         };
       });
 
@@ -216,6 +217,7 @@ const DREReport = () => {
                 }
                 dreStructure[mainCategory].items[subCategory] += transaction.amount;
                 dreStructure[mainCategory].total += transaction.amount;
+                dreStructure[mainCategory].rawTotal += transaction.amount; // Armazenar o valor bruto
               } else {
                 unmappedItems.push({
                   id: transaction.id,
@@ -230,6 +232,7 @@ const DREReport = () => {
                 }
                 dreStructure["NÃO CATEGORIZADO"].items[description] += transaction.amount;
                 dreStructure["NÃO CATEGORIZADO"].total += transaction.amount;
+                dreStructure["NÃO CATEGORIZADO"].rawTotal += transaction.amount; // Armazenar o valor bruto
               }
             });
           } catch (error) {
@@ -269,6 +272,7 @@ const DREReport = () => {
               
               dreStructure[mainCategory].items[subCategory] += entry.amount;
               dreStructure[mainCategory].total += entry.amount;
+              dreStructure[mainCategory].rawTotal += entry.amount; // Armazenar o valor bruto
               
               console.log(`Entrada manual adicionada: ${formatCurrency(entry.amount)} em ${mainCategory}.${subCategory}`);
             }
@@ -276,11 +280,20 @@ const DREReport = () => {
         }
       });
       
+      // Calcular somatório total de todas as transações (para verificação)
+      let sumOfAllTransactions = 0;
+      mainCategories.forEach(category => {
+        sumOfAllTransactions += dreStructure[category].rawTotal;
+      });
+      
+      console.log("Soma total de todas as transações (bruto):", sumOfAllTransactions);
+      
       const results = calculateDREResults(dreStructure);
       
       setDreData({
         categories: dreStructure,
-        results: results
+        results: results,
+        totalTransactions: sumOfAllTransactions
       });
       
       setUnmappedTransactions(unmappedItems);
@@ -296,27 +309,33 @@ const DREReport = () => {
   const calculateDREResults = (dreStructure) => {
     const results = {};
     
-    const getAbsValueIfNegative = (value) => {
-      return value < 0 ? Math.abs(value) : value;
-    };
+    // Usar os valores brutos (com sinal) para os cálculos
+    results.receitaBruta = dreStructure["RECEITA"].rawTotal || 0;
+    const deducoes = dreStructure["(-) DEDUÇÕES DA RECEITA"].rawTotal || 0;
+    results.receitaLiquida = results.receitaBruta + deducoes; // Valor negativo já está com sinal
     
-    results.receitaBruta = dreStructure["RECEITA"].total || 0;
-    const deducoes = dreStructure["(-) DEDUÇÕES DA RECEITA"].total || 0;
-    results.receitaLiquida = results.receitaBruta - getAbsValueIfNegative(deducoes);
+    const custos = dreStructure["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"].rawTotal || 0;
+    results.lucroBruto = results.receitaLiquida + custos; // Valor negativo já está com sinal
     
-    const custos = dreStructure["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"].total || 0;
-    results.lucroBruto = results.receitaLiquida - getAbsValueIfNegative(custos);
+    const despesasOperacionais = dreStructure["(-) DESPESAS OPERACIONAIS"].rawTotal || 0;
+    const outrasReceitas = dreStructure["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"].rawTotal || 0;
+    results.resultadoOperacional = results.lucroBruto + despesasOperacionais + outrasReceitas;
     
-    const despesasOperacionais = dreStructure["(-) DESPESAS OPERACIONAIS"].total || 0;
-    const outrasReceitas = dreStructure["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"].total || 0;
-    results.resultadoOperacional = results.lucroBruto - getAbsValueIfNegative(despesasOperacionais) + getAbsValueIfNegative(outrasReceitas);
+    const despesasSocios = dreStructure["(-) DESPESAS COM SÓCIOS"].rawTotal || 0;
+    results.resultadoAntesIR = results.resultadoOperacional + despesasSocios;
     
-    const despesasSocios = dreStructure["(-) DESPESAS COM SÓCIOS"].total || 0;
-    results.resultadoAntesIR = results.resultadoOperacional - getAbsValueIfNegative(despesasSocios);
+    const investimentos = dreStructure["(-) INVESTIMENTOS"].rawTotal || 0;
+    const naoCategorizado = dreStructure["NÃO CATEGORIZADO"].rawTotal || 0;
     
-    const investimentos = dreStructure["(-) INVESTIMENTOS"].total || 0;
-    const naoCategorizado = dreStructure["NÃO CATEGORIZADO"].total || 0;
-    results.resultadoLiquido = results.resultadoAntesIR - getAbsValueIfNegative(investimentos) + naoCategorizado;
+    // Soma de todas as transações para verificação
+    const totalTransactions = Object.values(dreStructure).reduce((sum, cat) => sum + cat.rawTotal, 0);
+    
+    // O resultado final é a soma de TODAS as transações
+    results.resultadoLiquido = totalTransactions;
+    
+    // Log para comparação
+    console.log("Resultado final (cálculo detalhado):", results.resultadoAntesIR + investimentos + naoCategorizado);
+    console.log("Resultado final (soma total transações):", totalTransactions);
     
     return results;
   };

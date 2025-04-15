@@ -56,7 +56,7 @@ const Charts = () => {
     try {
       // Inicializar valores financeiros
       const financialTotals = {
-        totalTransactions: 0,
+        totalTransactions: 0, // Guardar soma total das transações
         receitaBruta: 0,
         custosDiretos: 0,
         despesasOperacionais: 0,
@@ -127,24 +127,27 @@ const Charts = () => {
       
       // Helper function to process transaction by category
       const processTransaction = (transaction, mainCategory, subCategory, categoryPath) => {
+        // Adicionar ao total de todas as transações
+        financialTotals.totalTransactions += transaction.amount;
+        
         // Process by category type
         if (mainCategory === "RECEITA") {
           financialTotals.receitaBruta += transaction.amount;
         } 
         else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
-          financialTotals.custosDiretos += Math.abs(transaction.amount);
+          financialTotals.custosDiretos += transaction.amount; // Sem Math.abs
         } 
         else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
-          financialTotals.despesasOperacionais += Math.abs(transaction.amount);
+          financialTotals.despesasOperacionais += transaction.amount; // Sem Math.abs
         }
         else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
           financialTotals.outrasReceitas += transaction.amount;
         }
         else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
-          financialTotals.despesasSocios += Math.abs(transaction.amount);
+          financialTotals.despesasSocios += transaction.amount; // Sem Math.abs
         }
         else if (mainCategory === "(-) INVESTIMENTOS") {
-          financialTotals.investimentos += Math.abs(transaction.amount);
+          financialTotals.investimentos += transaction.amount; // Sem Math.abs
         }
         
         // Armazenar detalhes por categoria
@@ -204,9 +207,6 @@ const Charts = () => {
               }
             }
             
-            // Adicionar ao total geral
-            financialTotals.totalTransactions += transaction.amount;
-            
             // Categorizar com base no grupo principal
             if (isCategorized) {
               processTransaction(
@@ -218,6 +218,7 @@ const Charts = () => {
             } else {
               // Se não for categorizada, considerar como não categorizado
               financialTotals.naoCategorizado += transaction.amount;
+              financialTotals.totalTransactions += transaction.amount;
             }
           }
         } catch (error) {
@@ -247,9 +248,6 @@ const Charts = () => {
               const mainCategory = pathParts[0];
               const subCategory = pathParts[1] || entry.category;
               
-              // Adicionar ao total geral
-              financialTotals.totalTransactions += entry.amount;
-              
               // Process cash entry by category
               processTransaction(
                 entry, 
@@ -264,12 +262,13 @@ const Charts = () => {
         console.error(`Erro ao processar entradas de dinheiro para o período ${period}:`, error);
       }
       
-      // Calcular valores derivados usando a mesma lógica do DRE
-      const lucroBruto = financialTotals.receitaBruta - financialTotals.custosDiretos;
-      const resultadoOperacional = lucroBruto - financialTotals.despesasOperacionais + financialTotals.outrasReceitas;
-      const resultadoAntesIR = resultadoOperacional - financialTotals.despesasSocios;
-      // Incluir o valor das transações não categorizadas como no DRE
-      const resultadoFinal = resultadoAntesIR - financialTotals.investimentos + financialTotals.naoCategorizado;
+      // Calcular valores derivados para display - agora usando valores com sinais corretos
+      const lucroBruto = financialTotals.receitaBruta + financialTotals.custosDiretos;
+      const resultadoOperacional = lucroBruto + financialTotals.despesasOperacionais + financialTotals.outrasReceitas;
+      const resultadoAntesIR = resultadoOperacional + financialTotals.despesasSocios;
+      
+      // Para o resultado final, usar a soma de todas as transações
+      const resultadoFinal = financialTotals.totalTransactions;
       
       return {
         periodSummary: {
@@ -285,7 +284,12 @@ const Charts = () => {
           resultadoAntesIR,
           investimentos: financialTotals.investimentos,
           naoCategorizado: financialTotals.naoCategorizado,
-          resultadoFinal
+          resultadoFinal,
+          // Para exibição, também incluímos os valores absolutos
+          custosDiretosAbs: Math.abs(financialTotals.custosDiretos),
+          despesasOperacionaisAbs: Math.abs(financialTotals.despesasOperacionais),
+          despesasSociosAbs: Math.abs(financialTotals.despesasSocios),
+          investimentosAbs: Math.abs(financialTotals.investimentos)
         },
         periodCategories: {
           period,
@@ -480,9 +484,15 @@ const Charts = () => {
           }
         }
         
+        // Para custos diretos, mostrar o valor absoluto para visualização
+        const metricValue = selectedMetric === 'custosDiretos' ? 
+                           (period['custosDiretosAbs'] || Math.abs(period[selectedMetric])) : 
+                           (excludeAportesChart && selectedMetric === 'resultadoFinal' ? 
+                              resultadoFinalAjustado : period[selectedMetric]);
+        
         return {
           name: formatPeriod(period.period),
-          value: excludeAportesChart ? resultadoFinalAjustado : period[selectedMetric]
+          value: metricValue
         };
       });
     }
@@ -697,7 +707,9 @@ const Charts = () => {
         
         return {
           ...period,
-          resultadoFinalAjustado
+          resultadoFinalAjustado,
+          // Usar valores absolutos para exibição de custos
+          custosDiretosAbs: period.custosDiretosAbs || Math.abs(period.custosDiretos)
         };
       });
     } else {
@@ -930,7 +942,7 @@ const Charts = () => {
                           // Células padrão para métricas financeiras
                           <>
                             <td className="amount-positive">{formatCurrency(period.receitaBruta)}</td>
-                            <td className="amount-negative">{formatCurrency(period.custosDiretos)}</td>
+                            <td className="amount-negative">{formatCurrency(period.custosDiretosAbs)}</td>
                             <td className={period.lucroBruto >= 0 ? "amount-positive" : "amount-negative"}>
                               {formatCurrency(period.lucroBruto)}
                             </td>
@@ -950,7 +962,7 @@ const Charts = () => {
                           {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.receitaBruta, 0))}
                         </td>
                         <td className="amount-negative">
-                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.custosDiretos, 0))}
+                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.custosDiretosAbs, 0))}
                         </td>
                         <td className={prepareSummaryTableData().reduce((sum, period) => sum + period.lucroBruto, 0) >= 0 ? "amount-positive" : "amount-negative"}>
                           {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.lucroBruto, 0))}
