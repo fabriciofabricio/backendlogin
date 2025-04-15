@@ -24,9 +24,12 @@ const Dashboard = () => {
   const [financialData, setFinancialData] = useState({
     receitaBruta: 0,
     custosDiretos: 0,
+    despesasOperacionais: 0,
+    despesasTotais: 0, // Nova propriedade para a soma de custos diretos e despesas operacionais
     lucroBruto: 0,
     resultadoFinal: 0,
-    despesasOperacionais: 0
+    aportesValue: 0,               // Track aportes separately
+    resultadoFinalSemAportes: 0    // Track result without aportes
   });
   const [currentPeriod, setCurrentPeriod] = useState("");
   const [periodLabel, setPeriodLabel] = useState("");
@@ -49,14 +52,18 @@ const Dashboard = () => {
       const initialData = {
         receitaBruta: 0,
         custosDiretos: 0,
+        despesasOperacionais: 0,
+        deducoesReceita: 0, // Nova propriedade para rastrear deduções da receita
+        despesasTotais: 0, // Soma das categorias específicas e não categorizadas
         lucroBruto: 0,
         resultadoFinal: 0,
-        despesasOperacionais: 0,
         outrasReceitas: 0,
         despesasSocios: 0,
         investimentos: 0,
         naoCategorizado: 0,
-        totalTransactions: 0
+        totalTransactions: 0,
+        aportesValue: 0,               // Add this line
+        resultadoFinalSemAportes: 0    // Add this line
       };
       
       // Buscar categorias e mapeamentos necessários para o processamento
@@ -100,11 +107,16 @@ const Dashboard = () => {
               const normalizedDescription = transaction.description.trim().toLowerCase();
               let mainCategory = null;
               let isCategorized = false;
+              let categoryPath = "";
+              
+              // Adicionar ao total geral da soma
+              initialData.totalTransactions += transaction.amount;
               
               // Primeiro verificar se existe um mapeamento específico para esta transação
               if (specificMappings[transaction.id]) {
                 const specificMapping = specificMappings[transaction.id];
                 mainCategory = specificMapping.groupName;
+                categoryPath = specificMapping.categoryPath || "";
                 isCategorized = true;
               } 
               // Se não existir mapeamento específico, verificar mapeamento normal
@@ -112,12 +124,16 @@ const Dashboard = () => {
                 const mapping = categoryMappings[normalizedDescription];
                 if (!mapping.isSpecificMapping) { // Não é um mapeamento específico para outra transação
                   mainCategory = mapping.groupName;
+                  categoryPath = mapping.categoryPath || "";
                   isCategorized = true;
                 }
               }
               
-              // Adicionar ao total geral da soma
-              initialData.totalTransactions += transaction.amount;
+              // Check if this is an "aporte de sócio"
+              if ((categoryPath && categoryPath.toLowerCase().includes('aporte')) || 
+                  normalizedDescription.toLowerCase().includes('aporte')) {
+                initialData.aportesValue += transaction.amount;
+              }
               
               // Categorizar transação com base no mapeamento
               if (isCategorized) {
@@ -127,6 +143,8 @@ const Dashboard = () => {
                   initialData.custosDiretos += transaction.amount; // Não usa mais Math.abs aqui
                 } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
                   initialData.despesasOperacionais += transaction.amount; // Não usa mais Math.abs aqui
+                } else if (mainCategory === "(-) DEDUÇÕES DA RECEITA") {
+                  initialData.deducoesReceita += transaction.amount; // Nova categoria para deduções
                 } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                   initialData.outrasReceitas += transaction.amount;
                 } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
@@ -169,6 +187,12 @@ const Dashboard = () => {
               // Adicionar ao total geral da soma
               initialData.totalTransactions += entry.amount;
               
+              // Check if this is an "aporte de sócio"
+              if ((entry.categoryPath && entry.categoryPath.toLowerCase().includes('aporte')) || 
+                  (entry.description && entry.description.toLowerCase().includes('aporte'))) {
+                initialData.aportesValue += entry.amount;
+              }
+              
               // Categorizar com base no grupo principal
               if (mainCategory === "RECEITA") {
                 initialData.receitaBruta += entry.amount;
@@ -176,6 +200,8 @@ const Dashboard = () => {
                 initialData.custosDiretos += entry.amount; // Normalmente é positivo para entradas de dinheiro
               } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
                 initialData.despesasOperacionais += entry.amount;
+              } else if (mainCategory === "(-) DEDUÇÕES DA RECEITA") {
+                initialData.deducoesReceita += entry.amount; // Nova categoria para deduções
               } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                 initialData.outrasReceitas += entry.amount;
               } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
@@ -192,6 +218,10 @@ const Dashboard = () => {
         console.error("Erro ao carregar entradas de dinheiro:", error);
       }
       
+      // Calcular despesas totais somando as categorias específicas e não categorizadas
+      initialData.despesasTotais = initialData.deducoesReceita + initialData.custosDiretos + 
+                                  initialData.despesasOperacionais + initialData.naoCategorizado;
+      
       // Calcular valores derivados 
       initialData.lucroBruto = initialData.receitaBruta + initialData.custosDiretos; // Valores negativos já estão com sinal
       const resultadoOperacional = initialData.lucroBruto + initialData.despesasOperacionais + initialData.outrasReceitas;
@@ -200,11 +230,16 @@ const Dashboard = () => {
       // O resultado final é simplesmente a soma de todas as transações
       initialData.resultadoFinal = initialData.totalTransactions;
       
+      // Calculate result without aportes
+      initialData.resultadoFinalSemAportes = initialData.resultadoFinal - initialData.aportesValue;
+      
       // Adicionar log para depuração
       console.log("Valores financeiros calculados:", {
         periodo: period,
         receitaBruta: initialData.receitaBruta,
         custosDiretos: initialData.custosDiretos,
+        despesasOperacionais: initialData.despesasOperacionais,
+        despesasTotais: initialData.despesasTotais,
         lucroBruto: initialData.lucroBruto,
         despesasOperacionais: initialData.despesasOperacionais,
         outrasReceitas: initialData.outrasReceitas,
@@ -214,17 +249,21 @@ const Dashboard = () => {
         investimentos: initialData.investimentos,
         naoCategorizado: initialData.naoCategorizado,
         resultadoFinal: initialData.resultadoFinal,
+        aportesValue: initialData.aportesValue,
+        resultadoFinalSemAportes: initialData.resultadoFinalSemAportes,
         totalTransactions: initialData.totalTransactions,
       });
       
       // Calcular percentuais
       if (initialData.receitaBruta > 0) {
         initialData.custosDiretosPercent = (Math.abs(initialData.custosDiretos) / initialData.receitaBruta) * 100;
+        initialData.despesasTotaisPercent = (Math.abs(initialData.despesasTotais) / initialData.receitaBruta) * 100;
         initialData.lucroBrutoPercent = (initialData.lucroBruto / initialData.receitaBruta) * 100;
         initialData.resultadoFinalPercent = (initialData.resultadoFinal / initialData.receitaBruta) * 100;
         initialData.despesasOperacionaisPercent = (Math.abs(initialData.despesasOperacionais) / initialData.receitaBruta) * 100;
       } else {
         initialData.custosDiretosPercent = 0;
+        initialData.despesasTotaisPercent = 0;
         initialData.lucroBrutoPercent = 0;
         initialData.resultadoFinalPercent = 0;
         initialData.despesasOperacionaisPercent = 0;
@@ -260,8 +299,8 @@ const Dashboard = () => {
           periodLabel: period.label,
           receitaBruta: 0,
           custosDiretos: 0,
-          lucroBruto: 0,
           despesasOperacionais: 0,
+          lucroBruto: 0,
           outrasReceitas: 0,
           despesasSocios: 0,
           investimentos: 0,
@@ -646,51 +685,23 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="fin-card fin-card-costs">
-          <div className="fin-card-title">CUSTOS DIRETOS</div>
-          <div className="fin-card-value">
-            {loadingFinancialData ? (
-              <span className="loading-text">Carregando...</span>
-            ) : (
-              formatCurrency(Math.abs(financialData.custosDiretos))
-            )}
-          </div>
-          <div className="fin-card-description">Total de custos diretos</div>
-          <div className="fin-card-footer">
-            <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ 
-                  width: `${financialData.custosDiretosPercent}%`, 
-                  backgroundColor: '#00acc1' 
-                }}
-              ></div>
-            </div>
-            <div className="progress-text">
-              {loadingFinancialData ? 
-                "Calculando..." : 
-                `${Math.round(financialData.custosDiretosPercent || 0)}% das receitas`
-              }
-            </div>
-          </div>
-        </div>
-
+        {/* Card combinado de despesas totais que substitui os dois cards anteriores */}
         <div className="fin-card" style={{borderLeftColor: '#f44336'}}>
-          <div className="fin-card-title">DESPESAS OPERACIONAIS</div>
+          <div className="fin-card-title">DESPESAS TOTAIS</div>
           <div className="fin-card-value">
             {loadingFinancialData ? (
               <span className="loading-text">Carregando...</span>
             ) : (
-              formatCurrency(Math.abs(financialData.despesasOperacionais))
+              formatCurrency(Math.abs(financialData.despesasTotais))
             )}
           </div>
-          <div className="fin-card-description">Total de despesas operacionais</div>
+          <div className="fin-card-description">Deduções + Custos + Despesas + Não categorizadas</div>
           <div className="fin-card-footer">
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
                 style={{ 
-                  width: `${financialData.despesasOperacionaisPercent}%`, 
+                  width: `${financialData.despesasTotaisPercent}%`, 
                   backgroundColor: '#f44336' 
                 }}
               ></div>
@@ -698,7 +709,7 @@ const Dashboard = () => {
             <div className="progress-text">
               {loadingFinancialData ? 
                 "Calculando..." : 
-                `${Math.round(financialData.despesasOperacionaisPercent || 0)}% das receitas`
+                `${Math.round(financialData.despesasTotaisPercent || 0)}% das receitas`
               }
             </div>
           </div>
@@ -739,10 +750,12 @@ const Dashboard = () => {
             {loadingFinancialData ? (
               <span className="loading-text">Carregando...</span>
             ) : (
-              formatCurrency(financialData.resultadoFinal)
+              formatCurrency(excludeAportes ? financialData.resultadoFinalSemAportes : financialData.resultadoFinal)
             )}
           </div>
-          <div className="fin-card-description">Resultado líquido do período</div>
+          <div className="fin-card-description">
+            Resultado líquido do período {excludeAportes && "(sem aportes)"}
+          </div>
           <div className="fin-card-footer">
             <div className="progress-bar">
               <div 
