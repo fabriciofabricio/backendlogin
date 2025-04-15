@@ -32,6 +32,11 @@ const Dashboard = () => {
   const [periods, setPeriods] = useState([]);
   const [loadingFinancialData, setLoadingFinancialData] = useState(false);
 
+  // New state for periods summary
+  const [periodsSummary, setPeriodsSummary] = useState([]);
+  const [loadingPeriodsSummary, setLoadingPeriodsSummary] = useState(false);
+  const [excludeAportes, setExcludeAportes] = useState(false);
+
   // Carregar dados financeiros do período selecionado
   const loadFinancialData = useCallback(async (period) => {
     try {
@@ -224,6 +229,208 @@ const Dashboard = () => {
     }
   }, []);  // Empty dependency array as this function doesn't rely on any component state
 
+  // Nueva función para cargar el resumen de períodos
+  const loadPeriodsSummary = useCallback(async () => {
+    try {
+      setLoadingPeriodsSummary(true);
+      
+      if (!auth.currentUser || periods.length === 0) return;
+      
+      const summaryResults = [];
+      
+      // Get the 6 most recent periods
+      const recentPeriods = [...periods].slice(0, 6);
+      
+      for (const period of recentPeriods) {
+        // Function to calculate financial data for a specific period
+        // Similar to loadFinancialData but returns data instead of setting state
+        
+        const initialData = {
+          period: period.value,
+          periodLabel: period.label,
+          receitaBruta: 0,
+          custosDiretos: 0,
+          lucroBruto: 0,
+          despesasOperacionais: 0,
+          outrasReceitas: 0,
+          despesasSocios: 0,
+          investimentos: 0,
+          naoCategorizado: 0,
+          resultadoFinal: 0,
+          resultadoFinalSemAportes: 0,
+          aportesValue: 0
+        };
+        
+        // Get category mappings
+        const categoryMappingsDoc = await getDoc(doc(db, "categoryMappings", auth.currentUser.uid));
+        const categoryMappings = categoryMappingsDoc.exists() ? categoryMappingsDoc.data().mappings || {} : {};
+        
+        // Identify specific mappings by transaction ID
+        const specificMappings = {};
+        Object.entries(categoryMappings).forEach(([key, mapping]) => {
+          if (mapping.isSpecificMapping && mapping.transactionId) {
+            specificMappings[mapping.transactionId] = mapping;
+          }
+        });
+        
+        // 1. Get OFX files for the period
+        const ofxFilesQuery = query(
+          collection(db, "ofxFiles"),
+          where("userId", "==", auth.currentUser.uid),
+          where("period", "==", period.value)
+        );
+        
+        const ofxFilesSnapshot = await getDocs(ofxFilesQuery);
+        
+        // Process each OFX file
+        for (const fileDoc of ofxFilesSnapshot.docs) {
+          const fileData = fileDoc.data();
+          
+          if (fileData.filePath) {
+            try {
+              const storageRef = ref(storage, fileData.filePath);
+              const blob = await getBlob(storageRef);
+              const fileContent = await blob.text();
+              const parseResult = parseOFXContent(fileContent);
+              const transactions = parseResult.transactions;
+              
+              // Process each transaction
+              for (const transaction of transactions) {
+                const normalizedDescription = transaction.description.trim().toLowerCase();
+                let mainCategory = null;
+                let isCategorized = false;
+                let isAporte = false;
+                let categoryPath = "";
+                
+                // Check if there's a specific mapping for this transaction
+                if (specificMappings[transaction.id]) {
+                  const specificMapping = specificMappings[transaction.id];
+                  mainCategory = specificMapping.groupName;
+                  categoryPath = specificMapping.categoryPath || "";
+                  isCategorized = true;
+                } 
+                // If not, check for a normal mapping
+                else if (categoryMappings[normalizedDescription]) {
+                  const mapping = categoryMappings[normalizedDescription];
+                  if (!mapping.isSpecificMapping) {
+                    mainCategory = mapping.groupName;
+                    categoryPath = mapping.categoryPath || "";
+                    isCategorized = true;
+                  }
+                }
+                
+                // Check if this is an "aporte de sócio"
+                if (categoryPath.toLowerCase().includes('aporte') || 
+                    normalizedDescription.toLowerCase().includes('aporte')) {
+                  isAporte = true;
+                  initialData.aportesValue += transaction.amount;
+                }
+                
+                // Categorize transaction based on mapping
+                if (isCategorized) {
+                  if (mainCategory === "RECEITA") {
+                    initialData.receitaBruta += transaction.amount;
+                  } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
+                    initialData.custosDiretos += Math.abs(transaction.amount);
+                  } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
+                    initialData.despesasOperacionais += Math.abs(transaction.amount);
+                  } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
+                    initialData.outrasReceitas += transaction.amount;
+                  } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
+                    initialData.despesasSocios += Math.abs(transaction.amount);
+                  } else if (mainCategory === "(-) INVESTIMENTOS") {
+                    initialData.investimentos += Math.abs(transaction.amount);
+                  }
+                } else {
+                  // Uncategorized transaction
+                  initialData.naoCategorizado += transaction.amount;
+                }
+              }
+            } catch (error) {
+              console.error(`Erro ao processar arquivo OFX ${fileData.fileName}:`, error);
+            }
+          }
+        }
+        
+        // 2. Process cash entries for the period
+        try {
+          const cashEntriesQuery = query(
+            collection(db, "cashEntries"),
+            where("userId", "==", auth.currentUser.uid),
+            where("period", "==", period.value)
+          );
+          
+          const cashEntriesSnapshot = await getDocs(cashEntriesQuery);
+          
+          // Process each cash entry
+          cashEntriesSnapshot.forEach(doc => {
+            const entry = doc.data();
+            
+            // Check if entry has a category and amount
+            if (entry.categoryPath && typeof entry.amount === 'number') {
+              const pathParts = entry.categoryPath.split('.');
+              
+              if (pathParts.length >= 2) {
+                const mainCategory = pathParts[0];
+                const categoryName = pathParts[1];
+                
+                // Check if this is an "aporte de sócio"
+                if (entry.categoryPath.toLowerCase().includes('aporte') || 
+                    (entry.description && entry.description.toLowerCase().includes('aporte')) ||
+                    categoryName.toLowerCase().includes('aporte')) {
+                  initialData.aportesValue += entry.amount;
+                }
+                
+                // Categorize based on main category
+                if (mainCategory === "RECEITA") {
+                  initialData.receitaBruta += entry.amount;
+                } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
+                  initialData.custosDiretos += Math.abs(entry.amount);
+                } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
+                  initialData.despesasOperacionais += Math.abs(entry.amount);
+                } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
+                  initialData.outrasReceitas += entry.amount;
+                } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
+                  initialData.despesasSocios += Math.abs(entry.amount);
+                } else if (mainCategory === "(-) INVESTIMENTOS") {
+                  initialData.investimentos += Math.abs(entry.amount);
+                }
+              }
+            }
+          });
+        } catch (error) {
+          console.error(`Erro ao processar entradas de dinheiro para o período ${period.value}:`, error);
+        }
+        
+        // Calculate derived values as in DRE
+        initialData.lucroBruto = initialData.receitaBruta - initialData.custosDiretos;
+        const resultadoOperacional = initialData.lucroBruto - initialData.despesasOperacionais + initialData.outrasReceitas;
+        const resultadoAntesIR = resultadoOperacional - initialData.despesasSocios;
+        
+        // Include uncategorized transactions in the final result
+        initialData.resultadoFinal = resultadoAntesIR - initialData.investimentos + initialData.naoCategorizado;
+        
+        // Calculate result without "aportes"
+        initialData.resultadoFinalSemAportes = initialData.resultadoFinal - initialData.aportesValue;
+        
+        // Calculate total costs (all expenses combined)
+        initialData.custosTotal = initialData.custosDiretos + 
+                                  initialData.despesasOperacionais + 
+                                  initialData.despesasSocios + 
+                                  initialData.investimentos;
+        
+        summaryResults.push(initialData);
+      }
+      
+      setPeriodsSummary(summaryResults);
+    } catch (error) {
+      console.error("Erro ao carregar resumo de períodos:", error);
+      setError("Não foi possível carregar o resumo de períodos.");
+    } finally {
+      setLoadingPeriodsSummary(false);
+    }
+  }, [periods]);
+
   // Buscar períodos disponíveis - make the function memoized
   const loadAvailablePeriods = useCallback(async () => {
     try {
@@ -324,6 +531,13 @@ const Dashboard = () => {
 
     fetchUserData();
   }, [loadAvailablePeriods]);
+
+  // Load periods summary when periods are available
+  useEffect(() => {
+    if (periods.length > 0) {
+      loadPeriodsSummary();
+    }
+  }, [periods, loadPeriodsSummary]);
 
   // Função para tratar mudança de período
   const handlePeriodChange = async (event) => {
@@ -503,6 +717,152 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Period Summary Section - New */}
+      <div className="period-summary-section">
+        <div className="section-header">
+          <h2>Evolução dos Resultados</h2>
+          <div className="exclude-aportes-toggle">
+            <label>
+              <input 
+                type="checkbox" 
+                checked={excludeAportes}
+                onChange={() => setExcludeAportes(!excludeAportes)}
+              />
+              Excluir aportes de sócios do resultado final
+            </label>
+            {excludeAportes && <span className="filter-active">Filtro ativo</span>}
+          </div>
+        </div>
+
+        {loadingPeriodsSummary ? (
+          <div className="summary-loading">
+            <div className="loading-spinner"></div>
+            <p>Carregando resumo de períodos...</p>
+          </div>
+        ) : periodsSummary.length === 0 ? (
+          <div className="no-summary-data">
+            <p>Não há dados suficientes para mostrar a evolução dos resultados.</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary Cards View */}
+            <div className="summary-cards-container">
+              {periodsSummary.map((period, index) => (
+                <div key={index} className="summary-period-card">
+                  <div className="period-card-header">
+                    <span className="period-name">{period.periodLabel}</span>
+                    <span className={`period-result ${
+                      excludeAportes ? 
+                        (period.resultadoFinalSemAportes >= 0 ? 'positive' : 'negative') : 
+                        (period.resultadoFinal >= 0 ? 'positive' : 'negative')
+                    }`}>
+                      {formatCurrency(excludeAportes ? period.resultadoFinalSemAportes : period.resultadoFinal)}
+                    </span>
+                  </div>
+                  
+                  <div className="period-card-details">
+                    <div className="period-metric">
+                      <span className="metric-label">Receita</span>
+                      <span className="metric-value positive">{formatCurrency(period.receitaBruta)}</span>
+                    </div>
+                    <div className="period-metric">
+                      <span className="metric-label">Custos Totais</span>
+                      <span className="metric-value negative">{formatCurrency(period.custosTotal)}</span>
+                    </div>
+                    <div className="period-metric">
+                      <span className="metric-label">Lucro Bruto</span>
+                      <span className={`metric-value ${period.lucroBruto >= 0 ? 'positive' : 'negative'}`}>
+                        {formatCurrency(period.lucroBruto)}
+                      </span>
+                    </div>
+                    
+                    {excludeAportes && period.aportesValue > 0 && (
+                      <div className="period-metric aportes">
+                        <span className="metric-label">Aportes</span>
+                        <span className="metric-value">{formatCurrency(period.aportesValue)}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="period-card-chart">
+                    <div className="micro-chart">
+                      <div className="chart-bar">
+                        <div 
+                          className="chart-fill" 
+                          style={{ 
+                            width: `${Math.min(100, Math.max(0, ((period.receitaBruta - period.custosTotal) / period.receitaBruta) * 100 || 0))}%`,
+                            backgroundColor: (period.receitaBruta - period.custosTotal) >= 0 ? '#4caf50' : '#f44336'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary Table */}
+            <div className="summary-table-container">
+              <table className="summary-table">
+                <thead>
+                  <tr>
+                    <th>Período</th>
+                    <th>Receita</th>
+                    <th>Custos Totais</th>
+                    <th>Lucro Bruto</th>
+                    <th>Resultado Final</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {periodsSummary.map((period, index) => (
+                    <tr key={index}>
+                      <td>{period.periodLabel}</td>
+                      <td className="amount-positive">{formatCurrency(period.receitaBruta)}</td>
+                      <td className="amount-negative">{formatCurrency(period.custosTotal)}</td>
+                      <td className={period.lucroBruto >= 0 ? "amount-positive" : "amount-negative"}>
+                        {formatCurrency(period.lucroBruto)}
+                      </td>
+                      <td className={
+                        excludeAportes ? 
+                          (period.resultadoFinalSemAportes >= 0 ? "amount-positive" : "amount-negative") : 
+                          (period.resultadoFinal >= 0 ? "amount-positive" : "amount-negative")
+                      }>
+                        {formatCurrency(excludeAportes ? period.resultadoFinalSemAportes : period.resultadoFinal)}
+                      </td>
+                    </tr>
+                  ))}
+                  
+                  {/* Totals row */}
+                  <tr className="total-row">
+                    <td><strong>TOTAL</strong></td>
+                    <td className="amount-positive">
+                      {formatCurrency(periodsSummary.reduce((sum, period) => sum + period.receitaBruta, 0))}
+                    </td>
+                    <td className="amount-negative">
+                      {formatCurrency(periodsSummary.reduce((sum, period) => sum + period.custosTotal, 0))}
+                    </td>
+                    <td className={periodsSummary.reduce((sum, period) => sum + period.lucroBruto, 0) >= 0 ? "amount-positive" : "amount-negative"}>
+                      {formatCurrency(periodsSummary.reduce((sum, period) => sum + period.lucroBruto, 0))}
+                    </td>
+                    <td className={
+                      excludeAportes ?
+                        (periodsSummary.reduce((sum, period) => sum + period.resultadoFinalSemAportes, 0) >= 0 ? "amount-positive" : "amount-negative") :
+                        (periodsSummary.reduce((sum, period) => sum + period.resultadoFinal, 0) >= 0 ? "amount-positive" : "amount-negative")
+                    }>
+                      {formatCurrency(
+                        excludeAportes ?
+                          periodsSummary.reduce((sum, period) => sum + period.resultadoFinalSemAportes, 0) :
+                          periodsSummary.reduce((sum, period) => sum + period.resultadoFinal, 0)
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Transações recentes */}

@@ -448,6 +448,231 @@
   border-left-color: #9e9e9e;
 }
 
+/* New styles for Period Summary Section */
+.period-summary-section {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  margin-bottom: 25px;
+}
+
+.period-summary-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.period-summary-section .section-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.exclude-aportes-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exclude-aportes-toggle label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+}
+
+.exclude-aportes-toggle input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.filter-active {
+  font-size: 12px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* Summary Cards View */
+.summary-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.summary-period-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.summary-period-card:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.period-card-header {
+  background-color: #eceff1;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.period-name {
+  font-weight: 600;
+  color: #37474f;
+  font-size: 16px;
+}
+
+.period-result {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.period-result.positive {
+  color: #4caf50;
+}
+
+.period-result.negative {
+  color: #f44336;
+}
+
+.period-card-details {
+  padding: 15px;
+}
+
+.period-metric {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.period-metric:last-child {
+  margin-bottom: 0;
+}
+
+.metric-label {
+  color: #546e7a;
+}
+
+.metric-value {
+  font-weight: 600;
+}
+
+.metric-value.positive {
+  color: #4caf50;
+}
+
+.metric-value.negative {
+  color: #f44336;
+}
+
+.period-metric.aportes {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e0e0e0;
+}
+
+.period-metric.aportes .metric-label {
+  color: #9e9e9e;
+  font-style: italic;
+}
+
+.period-metric.aportes .metric-value {
+  color: #9e9e9e;
+  font-style: italic;
+}
+
+.period-card-chart {
+  padding: 0 15px 15px;
+}
+
+.micro-chart {
+  margin-top: 10px;
+}
+
+.chart-bar {
+  height: 6px;
+  background-color: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.chart-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Summary Table */
+.summary-table-container {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.summary-table th, 
+.summary-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.summary-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #37474f;
+}
+
+.summary-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+.total-row {
+  background-color: #e8f5e9;
+  font-weight: 600;
+}
+
+.total-row td {
+  border-top: 2px solid #4caf50;
+}
+
+/* Loading Styles for Summary */
+.summary-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.no-summary-data {
+  text-align: center;
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  color: #757575;
+  border: 1px dashed #bdbdbd;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .dashboard-header {
@@ -491,7 +716,8 @@
   }
 
   .categories-section .section-header,
-  .transactions-section .section-header {
+  .transactions-section .section-header,
+  .period-summary-section .section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
@@ -502,6 +728,10 @@
   }
 
   .categories-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-cards-container {
     grid-template-columns: 1fr;
   }
 }
