@@ -463,141 +463,176 @@ const DREReport = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="main-category">
-                    <td>1. RECEITA</td>
-                    <td className={getValueClass(dreData.categories?.["RECEITA"]?.total || 0, true)}>
-                      {formatCurrency(dreData.categories?.["RECEITA"]?.total || 0)}
-                    </td>
-                  </tr>
-                  {Object.entries(dreData.categories?.["RECEITA"]?.items || {}).map(([subCategory, value], index) => (
-                    <tr key={index} className="sub-category">
-                      <td>{subCategory}</td>
-                      <td className={getValueClass(value, true)}>
-                        {formatCurrency(value)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Só renderiza RECEITA se o total for diferente de zero */}
+                  {(dreData.categories?.["RECEITA"]?.total !== 0) && (
+                    <>
+                      <tr className="main-category">
+                        <td>RECEITA</td>
+                        <td className={getValueClass(dreData.categories?.["RECEITA"]?.total || 0, true)}>
+                          {formatCurrency(dreData.categories?.["RECEITA"]?.total || 0)}
+                        </td>
+                      </tr>
+                      {Object.entries(dreData.categories?.["RECEITA"]?.items || {}).map(([subCategory, value], index) => (
+                        <tr key={index} className="sub-category">
+                          <td>{subCategory}</td>
+                          <td className={getValueClass(value, true)}>
+                            {formatCurrency(value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
                   
-                  <tr className="main-category">
-                    <td>2. (-) DEDUÇÕES DA RECEITA</td>
-                    <td className={getValueClass(dreData.categories?.["(-) DEDUÇÕES DA RECEITA"]?.total || 0)}>
-                      {formatCurrency(dreData.categories?.["(-) DEDUÇÕES DA RECEITA"]?.total || 0)}
-                    </td>
-                  </tr>
-                  {Object.entries(dreData.categories?.["(-) DEDUÇÕES DA RECEITA"]?.items || {}).map(([subCategory, value], index) => (
-                    <tr key={index} className="sub-category">
-                      <td>{subCategory}</td>
-                      <td className={getValueClass(value)}>
-                        {formatCurrency(value)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Só renderiza DEDUÇÕES DA RECEITA se o total for diferente de zero */}
+                  {(dreData.categories?.["(-) DEDUÇÕES DA RECEITA"]?.total !== 0) && (
+                    <>
+                      <tr className="main-category">
+                        <td>DEDUÇÕES DA RECEITA</td>
+                        <td className={getValueClass(dreData.categories?.["(-) DEDUÇÕES DA RECEITA"]?.total || 0)}>
+                          {formatCurrency(dreData.categories?.["(-) DEDUÇÕES DA RECEITA"]?.total || 0)}
+                        </td>
+                      </tr>
+                      {Object.entries(dreData.categories?.["(-) DEDUÇÕES DA RECEITA"]?.items || {}).map(([subCategory, value], index) => (
+                        <tr key={index} className="sub-category">
+                          <td>{subCategory}</td>
+                          <td className={getValueClass(value)}>
+                            {formatCurrency(value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
                   
                   <tr className="result-row">
-                    <td>3. (=) RECEITA LÍQUIDA</td>
+                    <td>RECEITA LÍQUIDA</td>
                     <td className={getValueClass(dreData.results?.receitaLiquida || 0, true)}>
                       {formatCurrency(dreData.results?.receitaLiquida || 0)}
                     </td>
                   </tr>
                   
-                  <tr className="main-category">
-                    <td>4. (+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS</td>
-                    <td className={getValueClass(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.total || 0, true)}>
-                      {formatCurrency(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.total || 0)}
-                    </td>
-                  </tr>
-                  {Object.entries(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.items || {}).map(([subCategory, value], index) => (
-                    <tr key={index} className="sub-category">
-                      <td>{subCategory}</td>
-                      <td className={getValueClass(value, true)}>
-                        {formatCurrency(value)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Só renderiza OUTRAS RECEITAS se o total for diferente de zero */}
+                  {(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.total !== 0) && (
+                    <>
+                      <tr className="main-category">
+                        <td>OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS</td>
+                        <td className={getValueClass(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.total || 0, true)}>
+                          {formatCurrency(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.total || 0)}
+                        </td>
+                      </tr>
+                      {Object.entries(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.items || {}).map(([subCategory, value], index) => (
+                        <tr key={index} className="sub-category">
+                          <td>{subCategory}</td>
+                          <td className={getValueClass(value, true)}>
+                            {formatCurrency(value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
                   
-                  <tr className="main-category">
-                    <td>5. (-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)</td>
-                    <td className={getValueClass(dreData.categories?.["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"]?.total || 0)}>
-                      {formatCurrency(dreData.categories?.["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"]?.total || 0)}
-                    </td>
-                  </tr>
-                  {Object.entries(dreData.categories?.["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"]?.items || {}).map(([subCategory, value], index) => (
-                    <tr key={index} className="sub-category">
-                      <td>{subCategory}</td>
-                      <td className={getValueClass(value)}>
-                        {formatCurrency(value)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Só renderiza CUSTOS DAS MERCADORIAS VENDIDAS se o total for diferente de zero */}
+                  {(dreData.categories?.["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"]?.total !== 0) && (
+                    <>
+                      <tr className="main-category">
+                        <td>CUSTOS DAS MERCADORIAS VENDIDAS (CMV)</td>
+                        <td className={getValueClass(dreData.categories?.["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"]?.total || 0)}>
+                          {formatCurrency(dreData.categories?.["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"]?.total || 0)}
+                        </td>
+                      </tr>
+                      {Object.entries(dreData.categories?.["(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)"]?.items || {}).map(([subCategory, value], index) => (
+                        <tr key={index} className="sub-category">
+                          <td>{subCategory}</td>
+                          <td className={getValueClass(value)}>
+                            {formatCurrency(value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
                   
                   <tr className="result-row">
-                    <td>6. (=) LUCRO BRUTO</td>
+                    <td>LUCRO BRUTO</td>
                     <td className={getValueClass(dreData.results?.lucroBruto || 0, true)}>
                       {formatCurrency(dreData.results?.lucroBruto || 0)}
                     </td>
                   </tr>
                   
-                  <tr className="main-category">
-                    <td>7. (-) DESPESAS OPERACIONAIS</td>
-                    <td className={getValueClass(dreData.categories?.["(-) DESPESAS OPERACIONAIS"]?.total || 0)}>
-                      {formatCurrency(dreData.categories?.["(-) DESPESAS OPERACIONAIS"]?.total || 0)}
-                    </td>
-                  </tr>
-                  {Object.entries(dreData.categories?.["(-) DESPESAS OPERACIONAIS"]?.items || {}).map(([subCategory, value], index) => (
-                    <tr key={index} className="sub-category">
-                      <td>{subCategory}</td>
-                      <td className={getValueClass(value)}>
-                        {formatCurrency(value)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Só renderiza DESPESAS OPERACIONAIS se o total for diferente de zero */}
+                  {(dreData.categories?.["(-) DESPESAS OPERACIONAIS"]?.total !== 0) && (
+                    <>
+                      <tr className="main-category">
+                        <td>DESPESAS OPERACIONAIS</td>
+                        <td className={getValueClass(dreData.categories?.["(-) DESPESAS OPERACIONAIS"]?.total || 0)}>
+                          {formatCurrency(dreData.categories?.["(-) DESPESAS OPERACIONAIS"]?.total || 0)}
+                        </td>
+                      </tr>
+                      {Object.entries(dreData.categories?.["(-) DESPESAS OPERACIONAIS"]?.items || {}).map(([subCategory, value], index) => (
+                        <tr key={index} className="sub-category">
+                          <td>{subCategory}</td>
+                          <td className={getValueClass(value)}>
+                            {formatCurrency(value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
                   
                   <tr className="result-row">
-                    <td>8. (=) RESULTADO OPERACIONAL</td>
+                    <td>RESULTADO OPERACIONAL</td>
                     <td className={getValueClass(dreData.results?.resultadoOperacional || 0, true)}>
                       {formatCurrency(dreData.results?.resultadoOperacional || 0)}
                     </td>
                   </tr>
                   
-                  <tr className="main-category">
-                    <td>9. (-) DESPESAS COM SÓCIOS</td>
-                    <td className={getValueClass(dreData.categories?.["(-) DESPESAS COM SÓCIOS"]?.total || 0)}>
-                      {formatCurrency(dreData.categories?.["(-) DESPESAS COM SÓCIOS"]?.total || 0)}
-                    </td>
-                  </tr>
-                  {Object.entries(dreData.categories?.["(-) DESPESAS COM SÓCIOS"]?.items || {}).map(([subCategory, value], index) => (
-                    <tr key={index} className="sub-category">
-                      <td>{subCategory}</td>
-                      <td className={getValueClass(value)}>
-                        {formatCurrency(value)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Só renderiza DESPESAS COM SÓCIOS se o total for diferente de zero */}
+                  {(dreData.categories?.["(-) DESPESAS COM SÓCIOS"]?.total !== 0) && (
+                    <>
+                      <tr className="main-category">
+                        <td>DESPESAS COM SÓCIOS</td>
+                        <td className={getValueClass(dreData.categories?.["(-) DESPESAS COM SÓCIOS"]?.total || 0)}>
+                          {formatCurrency(dreData.categories?.["(-) DESPESAS COM SÓCIOS"]?.total || 0)}
+                        </td>
+                      </tr>
+                      {Object.entries(dreData.categories?.["(-) DESPESAS COM SÓCIOS"]?.items || {}).map(([subCategory, value], index) => (
+                        <tr key={index} className="sub-category">
+                          <td>{subCategory}</td>
+                          <td className={getValueClass(value)}>
+                            {formatCurrency(value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
                   
                   <tr className="result-row">
-                    <td>10. (=) RESULTADO ANTES DO IR</td>
+                    <td>RESULTADO ANTES DO IR</td>
                     <td className={getValueClass(dreData.results?.resultadoAntesIR || 0, true)}>
                       {formatCurrency(dreData.results?.resultadoAntesIR || 0)}
                     </td>
                   </tr>
                   
-                  <tr className="main-category">
-                    <td>11. (-) INVESTIMENTOS</td>
-                    <td className={getValueClass(dreData.categories?.["(-) INVESTIMENTOS"]?.total || 0)}>
-                      {formatCurrency(dreData.categories?.["(-) INVESTIMENTOS"]?.total || 0)}
-                    </td>
-                  </tr>
-                  {Object.entries(dreData.categories?.["(-) INVESTIMENTOS"]?.items || {}).map(([subCategory, value], index) => (
-                    <tr key={index} className="sub-category">
-                      <td>{subCategory}</td>
-                      <td className={getValueClass(value)}>
-                        {formatCurrency(value)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Só renderiza INVESTIMENTOS se o total for diferente de zero */}
+                  {(dreData.categories?.["(-) INVESTIMENTOS"]?.total !== 0) && (
+                    <>
+                      <tr className="main-category">
+                        <td>INVESTIMENTOS</td>
+                        <td className={getValueClass(dreData.categories?.["(-) INVESTIMENTOS"]?.total || 0)}>
+                          {formatCurrency(dreData.categories?.["(-) INVESTIMENTOS"]?.total || 0)}
+                        </td>
+                      </tr>
+                      {Object.entries(dreData.categories?.["(-) INVESTIMENTOS"]?.items || {}).map(([subCategory, value], index) => (
+                        <tr key={index} className="sub-category">
+                          <td>{subCategory}</td>
+                          <td className={getValueClass(value)}>
+                            {formatCurrency(value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
                   
                   <tr className="final-result-row">
-                    <td>12. (=) RESULTADO LÍQUIDO</td>
+                    <td>RESULTADO LÍQUIDO</td>
                     <td className={getValueClass(dreData.results?.resultadoLiquido || 0, true)}>
                       {formatCurrency(dreData.results?.resultadoLiquido || 0)}
                     </td>
@@ -612,7 +647,7 @@ const DREReport = () => {
                       >
                         <td>
                           Transações não categorizadas 
-                          <span className="toggle-icon">{nonCategorizedExpanded ? ' ▼' : ' ►'}</span>
+                          <span className={`toggle-icon ${nonCategorizedExpanded ? 'toggle-icon-expanded' : ''}`}></span>
                         </td>
                         <td className={getValueClass(dreData.categories?.["NÃO CATEGORIZADO"]?.total || 0, true)}>
                           {formatCurrency(dreData.categories?.["NÃO CATEGORIZADO"]?.total || 0)}
