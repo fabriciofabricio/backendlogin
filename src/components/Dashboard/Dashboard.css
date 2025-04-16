@@ -755,3 +755,35 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Aumentar a altura do cartão de RECEITAS */
+.fin-card-receipts {
+  min-height: 20px; /* Aumenta a altura mínima */
+  padding-bottom: 56px; /* Mais espaço interno na base */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Distribui o conteúdo verticalmente */
+}
+
+
+/* Aumentar a largura horizontal do container principal */
+.category-details-container,
+.dashboard-container {
+  max-width: 100%; /* Remove o limite de largura máxima */
+  padding: 20px;
+}
+
+/* Fazer os cards ocuparem mais espaço horizontalmente */
+.card-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr; /* Mantém 4 colunas equilibradas */
+  gap: 15px; /* Reduz um pouco o espaço entre os cards */
+  width: 98%; /* Quase toda a largura disponível */
+  margin: 0 auto; /* Centraliza o container */
+}
+
+/* Garantir que os cards aumentem horizontalmente */
+.fin-card {
+  width: 100%; /* Cada card ocupa 100% do espaço da coluna */
+  box-sizing: border-box;
+}

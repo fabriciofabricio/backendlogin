@@ -686,7 +686,7 @@ const Dashboard = () => {
         </div>
 
         {/* Card combinado de despesas totais que substitui os dois cards anteriores */}
-        <div className="fin-card" style={{borderLeftColor: '#f44336'}}>
+        <div className="fin-card" style={{borderLeftColor: '#36b9cc'}}>
           <div className="fin-card-title">DESPESAS TOTAIS</div>
           <div className="fin-card-value">
             {loadingFinancialData ? (
@@ -702,7 +702,7 @@ const Dashboard = () => {
                 className="progress-fill" 
                 style={{ 
                   width: `${financialData.despesasTotaisPercent}%`, 
-                  backgroundColor: '#f44336' 
+                  backgroundColor: '#36b9cc' 
                 }}
               ></div>
             </div>

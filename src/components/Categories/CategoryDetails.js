@@ -502,23 +502,32 @@ const CategoryDetails = () => {
                   </table>
                 </div>
                 
-                {/* Paginação */}
+                {/* Paginação - ATUALIZADA com ícones SVG */}
                 {totalPages > 1 && (
                   <div className="pagination">
                     <button
                       onClick={() => handlePageChange(1)}
                       disabled={currentPage === 1}
                       className="pagination-button"
+                      title="Primeira página"
+                      aria-label="Ir para a primeira página"
                     >
-                      &laquo;
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="pagination-icon">
+                        <polyline points="11 17 6 12 11 7"></polyline>
+                        <polyline points="18 17 13 12 18 7"></polyline>
+                      </svg>
                     </button>
                     
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
                       className="pagination-button"
+                      title="Página anterior"
+                      aria-label="Ir para a página anterior"
                     >
-                      &lt;
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="pagination-icon">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                      </svg>
                     </button>
                     
                     <span className="pagination-info">
@@ -529,16 +538,25 @@ const CategoryDetails = () => {
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
                       className="pagination-button"
+                      title="Próxima página"
+                      aria-label="Ir para a próxima página"
                     >
-                      &gt;
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="pagination-icon">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
                     </button>
                     
                     <button
                       onClick={() => handlePageChange(totalPages)}
                       disabled={currentPage === totalPages}
                       className="pagination-button"
+                      title="Última página"
+                      aria-label="Ir para a última página"
                     >
-                      &raquo;
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="pagination-icon">
+                        <polyline points="13 17 18 12 13 7"></polyline>
+                        <polyline points="6 17 11 12 6 7"></polyline>
+                      </svg>
                     </button>
                   </div>
                 )}
