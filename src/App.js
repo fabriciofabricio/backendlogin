@@ -1,6 +1,6 @@
 // src/App.js
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React, { useState, useEffect, Suspense } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/config";
 import Login from "./components/Auth/Login";
@@ -17,6 +17,87 @@ import CashEntry from "./components/CashEntry/CashEntry";
 import Settings from "./components/Settings/Settings";
 import Charts from "./components/Charts/Charts";
 import "./App.css";
+
+// Componente que mantém todos os componentes carregados e alterna visibilidade
+function PersistentComponents() {
+  const location = useLocation();
+  const [loaded, setLoaded] = useState(false);
+  const [currentPath, setCurrentPath] = useState("");
+  
+  // Efeito para carregar os componentes após montagem inicial
+  useEffect(() => {
+    setLoaded(true);
+    
+    // Atualizar o caminho atual para comparação
+    setCurrentPath(decodeURIComponent(location.pathname));
+    
+    // Se estamos na rota raiz, redirecionar para o dashboard
+    if (location.pathname === "/" || location.pathname === "") {
+      window.location.href = "/dashboard";
+    }
+  }, [location.pathname]);
+  
+  // Helper function para determinar qual componente mostrar
+  const shouldShow = (path) => {
+    // Se estamos na rota raiz, mostre o dashboard por padrão
+    if (currentPath === "/" || currentPath === "") {
+      return path === "/dashboard";
+    }
+    
+    // Comparação normalizada para lidar com caracteres especiais
+    return currentPath === path || 
+           decodeURIComponent(currentPath) === path ||
+           currentPath === decodeURIComponent(path);
+  };
+  
+  // Debug para ver na console o caminho atual
+  useEffect(() => {
+    console.log("Caminho atual:", currentPath);
+  }, [currentPath]);
+  
+  return (
+    <>
+      {loaded && (
+        <>
+          <div style={{ display: shouldShow("/select-categories") ? "block" : "none" }}>
+            <CategorySelection />
+          </div>
+          <div style={{ display: shouldShow("/dashboard") ? "block" : "none" }}>
+            <Dashboard />
+          </div>
+          <div style={{ display: shouldShow("/dre") ? "block" : "none" }}>
+            <DREReport />
+          </div>
+          <div style={{ display: shouldShow("/charts") ? "block" : "none" }}>
+            <Charts />
+          </div>
+          <div style={{ display: shouldShow("/transactions") ? "block" : "none" }}>
+            <Transactions />
+          </div>
+          <div style={{ display: shouldShow("/categorias") ? "block" : "none" }}>
+            <CategoryDetails />
+          </div>
+          {/* Usando both com e sem acentos para garantir compatibilidade */}
+          <div style={{ display: shouldShow("/não-categorizados") || shouldShow("/nao-categorizados") ? "block" : "none" }}>
+            <NonCategorized />
+          </div>
+          <div style={{ display: shouldShow("/editar-categorizados") ? "block" : "none" }}>
+            <EditCategorized />
+          </div>
+          <div style={{ display: shouldShow("/periods") ? "block" : "none" }}>
+            <PeriodManager />
+          </div>
+          <div style={{ display: shouldShow("/cash-entry") ? "block" : "none" }}>
+            <CashEntry />
+          </div>
+          <div style={{ display: shouldShow("/settings") ? "block" : "none" }}>
+            <Settings />
+          </div>
+        </>
+      )}
+    </>
+  );
+}
 
 // Rota protegida que requer autenticação
 const ProtectedRoute = ({ children }) => {
@@ -49,91 +130,23 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route 
-          path="/select-categories" 
-          element={
-            <ProtectedRoute>
-              <CategorySelection />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/dre" 
-          element={
-            <ProtectedRoute>
-              <DREReport />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/charts" 
-          element={
-            <ProtectedRoute>
-              <Charts />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/transactions" 
-          element={
-            <ProtectedRoute>
-              <Transactions />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/categorias" 
-          element={
-            <ProtectedRoute>
-              <CategoryDetails />
-            </ProtectedRoute>
-          } 
-        />
+        {/* Rota raiz explícita redirecionando para dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        {/* Rotas explícitas para URLs com caracteres especiais */}
         <Route 
           path="/não-categorizados" 
           element={
             <ProtectedRoute>
-              <NonCategorized />
+              <PersistentComponents />
             </ProtectedRoute>
           } 
         />
+        {/* Rota curinga que captura todas as rotas protegidas */}
         <Route 
-          path="/editar-categorizados" 
+          path="/*" 
           element={
             <ProtectedRoute>
-              <EditCategorized />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/periods" 
-          element={
-            <ProtectedRoute>
-              <PeriodManager />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/cash-entry" 
-          element={
-            <ProtectedRoute>
-              <CashEntry />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/settings" 
-          element={
-            <ProtectedRoute>
-              <Settings />
+              <PersistentComponents />
             </ProtectedRoute>
           } 
         />
