@@ -194,13 +194,13 @@ const DREReport = () => {
               let mainCategory, subCategory, mapping;
               let categorized = false;
               
-              // Primeiro, verificar se existe um mapeamento específico para esta transação
+              // Primeiro verificar se existe um mapeamento específico para esta transação
               if (specificMappings[transaction.id]) {
                 mapping = specificMappings[transaction.id];
                 mainCategory = mapping.groupName;
                 subCategory = mapping.categoryName;
                 categorized = true;
-              }
+              } 
               // Se não existir mapeamento específico, verificar mapeamento normal
               else if (categoryMappings[normalizedDescription]) {
                 mapping = categoryMappings[normalizedDescription];
@@ -377,32 +377,34 @@ const DREReport = () => {
   return (
     <MainLayout userName={user?.displayName || "Usuário"}>
       <div className="dre-container">
-        <div className="dre-header">
-          <h1>Demonstração do Resultado do Exercício (DRE)</h1>
-          
-          <div className="period-selector">
-            <label htmlFor="period-select">Período:</label>
-            <select
-              id="period-select"
-              value={selectedPeriod}
-              onChange={(e) => {
-                const period = e.target.value;
-                setSelectedPeriod(period);
-                // Salvar o período selecionado no localStorage
-                localStorage.setItem('selectedPeriod', period);
-              }}
-              disabled={loading}
-            >
-              {periods.length === 0 ? (
-                <option value="">Nenhum período disponível</option>
-              ) : (
-                periods.map((period) => (
-                  <option key={period.value} value={period.value}>
-                    {period.label}
-                  </option>
-                ))
-              )}
-            </select>
+        {/* Novo seletor de período no padrão do Dashboard */}
+        <div className="period-selector-container">
+          <div className="period-selector-header">
+            <h2>Demonstração do Resultado do Exercício (DRE)</h2>
+            <div className="period-dropdown">
+              <label htmlFor="period-select">Período: </label>
+              <select
+                id="period-select"
+                value={selectedPeriod}
+                onChange={(e) => {
+                  const period = e.target.value;
+                  setSelectedPeriod(period);
+                  // Salvar o período selecionado no localStorage
+                  localStorage.setItem('selectedPeriod', period);
+                }}
+                disabled={loading}
+              >
+                {periods.length === 0 ? (
+                  <option value="">Nenhum período disponível</option>
+                ) : (
+                  periods.map((period) => (
+                    <option key={period.value} value={period.value}>
+                      {period.label}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
           </div>
         </div>
         

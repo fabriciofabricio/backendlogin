@@ -392,27 +392,29 @@ const CategoryDetails = () => {
   return (
     <MainLayout userName={user?.displayName || "Usuário"}>
       <div className="category-details-container">
-        <div className="category-details-header">
-          <h1>Detalhes por Categoria</h1>
-          
-          <div className="period-selector">
-            <label htmlFor="period-select">Período:</label>
-            <select
-              id="period-select"
-              value={selectedPeriod}
-              onChange={handlePeriodChange}
-              disabled={loading}
-            >
-              {periods.length === 0 ? (
-                <option value="">Nenhum período disponível</option>
-              ) : (
-                periods.map((period) => (
-                  <option key={period.value} value={period.value}>
-                    {period.label}
-                  </option>
-                ))
-              )}
-            </select>
+        {/* Novo seletor de período no padrão do Dashboard */}
+        <div className="period-selector-container">
+          <div className="period-selector-header">
+            <h2>Detalhes por Categoria</h2>
+            <div className="period-dropdown">
+              <label htmlFor="period-select">Período: </label>
+              <select
+                id="period-select"
+                value={selectedPeriod}
+                onChange={handlePeriodChange}
+                disabled={loading}
+              >
+                {periods.length === 0 ? (
+                  <option value="">Nenhum período disponível</option>
+                ) : (
+                  periods.map((period) => (
+                    <option key={period.value} value={period.value}>
+                      {period.label}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
           </div>
         </div>
         

@@ -1,3 +1,3 @@
-Receita bruta do Relatorio DRE esta atualizada, mas no dashboard não, 
+Animações de carregamento de pagina,
 
-Valores do grafico sendo puxados errado
+pagina de grafico feia, 
