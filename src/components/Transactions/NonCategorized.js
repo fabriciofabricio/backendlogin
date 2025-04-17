@@ -22,7 +22,9 @@ const NonCategorized = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterValue, setFilterValue] = useState("all"); // "all", "positive", "negative"
   const [autoMappedTransactions, setAutoMappedTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
   const transactionsPerPage = 10;
 
   // Carregar usuário, períodos e categorias
@@ -174,9 +176,63 @@ const NonCategorized = () => {
   // Verificar se existe alguma categorização automática que precisa ser salva
   useEffect(() => {
     if (autoMappedTransactions.length > 0) {
-      saveAutoMappedTransactions();
+      // Verificar se as transações já não foram salvas anteriormente
+      const unsavedTransactions = autoMappedTransactions.filter(transaction => {
+        // Verificar se não existe um mapeamento para esta transação
+        return !Object.values(categoryMappings).some(mapping => 
+          mapping.isSpecificMapping && 
+          mapping.transactionId === transaction.id && 
+          mapping.autoMapped === true
+        );
+      });
+      
+      if (unsavedTransactions.length > 0) {
+        // Só exibir o aviso e salvar se realmente houver transações não salvas
+        setAutoMappedTransactions(unsavedTransactions);
+        saveAutoMappedTransactions();
+      } else {
+        // Limpar o array se todas as transações já estiverem salvas
+        setAutoMappedTransactions([]);
+      }
     }
-  }, [autoMappedTransactions]);
+  }, [autoMappedTransactions, categoryMappings]);
+
+  // Efeito para filtrar transações quando mudar a busca ou filtro
+  useEffect(() => {
+    if (transactions.length > 0) {
+      filterTransactions();
+    }
+  }, [transactions, searchTerm, filterValue]);
+
+  // Função para filtrar transações
+  const filterTransactions = () => {
+    let filtered = [...transactions];
+    
+    // Aplicar filtro de busca por texto
+    if (searchTerm) {
+      filtered = filtered.filter(transaction => 
+        transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Aplicar filtro de valores positivos/negativos
+    if (filterValue !== "all") {
+      filtered = filtered.filter(transaction => {
+        if (filterValue === "positive") {
+          return transaction.amount >= 0;
+        } else if (filterValue === "negative") {
+          return transaction.amount < 0;
+        }
+        return true;
+      });
+    }
+    
+    setFilteredTransactions(filtered);
+    
+    // Resetar página atual e calcular total de páginas
+    setCurrentPage(1);
+    setTotalPages(Math.max(1, Math.ceil(filtered.length / transactionsPerPage)));
+  };
 
   // Salvar categorizações automáticas no Firestore
   const saveAutoMappedTransactions = async () => {
@@ -290,14 +346,23 @@ const NonCategorized = () => {
               }
               // Verificar se foi categorizada automaticamente durante o parsing
               else if (transaction.autoMapped && transaction.category && transaction.categoryPath) {
-                // Esta transação foi categorizada automaticamente, mas não está salva
-                // Vamos marcá-la para salvar no Firestore
-                autoMappedToSave.push({
-                  ...transaction,
-                  id: transaction.id,
-                  description: transaction.description,
-                  groupName: transaction.categoryPath.split('.')[0]
-                });
+                // Verificar se já existe um mapeamento específico para esta transação no Firestore
+                const hasExistingMapping = Object.values(categoryMappings).some(mapping => 
+                  mapping.isSpecificMapping && 
+                  mapping.transactionId === transaction.id && 
+                  mapping.autoMapped === true
+                );
+                
+                // Apenas adicionar à lista de autoMappedToSave se ainda não existir mapeamento
+                if (!hasExistingMapping) {
+                  // Esta transação foi categorizada automaticamente, mas não está salva
+                  autoMappedToSave.push({
+                    ...transaction,
+                    id: transaction.id,
+                    description: transaction.description,
+                    groupName: transaction.categoryPath.split('.')[0]
+                  });
+                }
                 
                 // A transação está categorizada, mesmo que ainda não esteja salva
                 isCategorized = true;
@@ -324,12 +389,16 @@ const NonCategorized = () => {
       if (autoMappedToSave.length > 0) {
         console.log(`Encontradas ${autoMappedToSave.length} transações com categorização automática não salva.`);
         setAutoMappedTransactions(autoMappedToSave);
+      } else {
+        // Limpar o estado para não mostrar a mensagem
+        setAutoMappedTransactions([]);
       }
       
       // Ordenar transações por data (mais recente primeiro)
       nonCategorizedTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
       
       setTransactions(nonCategorizedTransactions);
+      setFilteredTransactions(nonCategorizedTransactions);
       
       // Calcular total de páginas
       setTotalPages(Math.max(1, Math.ceil(nonCategorizedTransactions.length / transactionsPerPage)));
@@ -350,11 +419,6 @@ const NonCategorized = () => {
     // Salvar o período selecionado no localStorage
     localStorage.setItem('selectedPeriod', period);
   };
-
-  // Filtrar transações com o termo de busca
-  const filteredTransactions = transactions.filter(transaction => {
-    return !searchTerm || transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
-  });
 
   // Obter transações para a página atual
   const getCurrentTransactions = () => {
@@ -534,14 +598,27 @@ const NonCategorized = () => {
           </div>
         )}
         
+        {/* Nova barra de pesquisa com filtro por valores positivos/negativos */}
         <div className="transactions-filters">
-          <input
-            type="text"
-            placeholder="Buscar por descrição..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="filter-input"
-          />
+          <div className="search-filter">
+            <input
+              type="text"
+              placeholder="Buscar por descrição..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="filter-input"
+            />
+            
+            <select
+              value={filterValue}
+              onChange={(e) => setFilterValue(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">Todos os valores</option>
+              <option value="positive">Valores positivos</option>
+              <option value="negative">Valores negativos</option>
+            </select>
+          </div>
           
           <div className="transactions-count">
             {filteredTransactions.length} transações não categorizadas encontradas

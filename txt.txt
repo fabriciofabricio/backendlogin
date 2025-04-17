@@ -1,3 +1,15 @@
 Animações de carregamento de pagina,
 
-pagina de grafico feia, 
+
+
+
+V   Dashboard
+X   Relatório DRE (animação no relatorio dre com borda preta me incomodando)
+V   Detalhes por Categoria
+X   Gráficos (icones e botão de barra e linha)
+V   Itens não Categorizados
+V   Editar Itens Categorizados
+
+X   Gerenciador de Períodos
+X   Entrada de Dinheiro
+X   Configurações

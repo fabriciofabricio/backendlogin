@@ -599,12 +599,13 @@ const EditCategorized = () => {
                             {formatCurrency(transaction.amount)}
                           </td>
                           <td>
-                            <button
-                              className="edit-category-button"
-                              onClick={() => handleEditTransaction(transaction)}
-                            >
-                              Editar Categoria
-                            </button>
+                          <button
+                          className="edit-category-button"
+                          onClick={() => handleEditTransaction(transaction)}
+                          aria-label="Editar categoria desta transação"
+                        >
+                          Editar Categoria
+                        </button>
                           </td>
                         </tr>
                       ))}
@@ -661,7 +662,7 @@ const EditCategorized = () => {
           </>
         )}
         
-        {/* Modal de edição */}
+        {/* Modal de edição com estrutura aprimorada */}
         {editingTransaction && (
           <div className="edit-modal-overlay">
             <div className="edit-modal">
@@ -672,17 +673,30 @@ const EditCategorized = () => {
               
               <div className="edit-modal-content">
                 <div className="transaction-details">
-                  <p><strong>Descrição:</strong> {editingTransaction.description}</p>
-                  <p><strong>Data:</strong> {formatDate(editingTransaction.date)}</p>
-                  <p><strong>Valor:</strong> <span className={editingTransaction.amount >= 0 ? "amount-positive" : "amount-negative"}>
-                    {formatCurrency(editingTransaction.amount)}
-                  </span></p>
-                  <p><strong>Categoria Atual:</strong> <span className="category-badge">{editingTransaction.category}</span></p>
+                  <p>
+                    <strong>Descrição:</strong>
+                    {editingTransaction.description}
+                  </p>
+                  <p>
+                    <strong>Data:</strong>
+                    {formatDate(editingTransaction.date)}
+                  </p>
+                  <p>
+                    <strong>Valor:</strong>
+                    <span className={editingTransaction.amount >= 0 ? "amount-positive" : "amount-negative"}>
+                      {formatCurrency(editingTransaction.amount)}
+                    </span>
+                  </p>
+                  <p>
+                    <strong>Categoria Atual:</strong>
+                    <span className="category-badge">{editingTransaction.category}</span>
+                  </p>
                 </div>
                 
                 <div className="category-selection">
-                  <label>Nova Categoria:</label>
+                  <label htmlFor="new-category-select">Nova Categoria:</label>
                   <select
+                    id="new-category-select"
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="category-select"
@@ -690,14 +704,14 @@ const EditCategorized = () => {
                     <option value="">Selecione uma categoria</option>
                     {flatCategories.map((category, index) => (
                       <option key={index} value={category.value}>
-                        {category.label} ({category.group})
+                        {category.label}
                       </option>
                     ))}
                   </select>
                 </div>
                 
                 <div className="edit-scope-selection">
-                  <p><strong>Aplicar alteração:</strong></p>
+                  <p>Aplicar alteração:</p>
                   <div className="radio-group">
                     <label className="radio-label">
                       <input
@@ -724,7 +738,9 @@ const EditCategorized = () => {
               </div>
               
               <div className="edit-modal-footer">
-                <button className="cancel-button" onClick={handleCloseEdit}>Cancelar</button>
+                <button className="cancel-button" onClick={handleCloseEdit}>
+                  Cancelar
+                </button>
                 <button 
                   className="save-button" 
                   onClick={handleSaveEdit}
