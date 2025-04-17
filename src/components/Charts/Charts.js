@@ -1,4 +1,4 @@
-// src/components/Charts/Charts.js - Versão atualizada
+// src/components/Charts/Charts.js - Versão com cores atualizadas
 import React, { useState, useEffect, useCallback } from "react";
 import { auth, db, storage } from "../../firebase/config";
 import { 
@@ -41,7 +41,20 @@ const Charts = () => {
 
   const [excludeAportesChart, setExcludeAportesChart] = useState(false);
   const [excludeAportesTable, setExcludeAportesTable] = useState(false);
-  const COLORS = ['#4caf50', '#ff9800', '#2196f3', '#f44336', '#9c27b0', '#00acc1', '#3f51b5', '#607d8b', '#795548', '#e91e63'];
+  
+  // Nova paleta de cores para linhas
+  const COLORS = [
+    '#3273dc', // Azul royal
+    '#20c997', // Verde-água
+    '#8e44ad', // Roxo
+    '#f39c12', // Amarelo âmbar
+    '#e74c3c', // Vermelho coral
+    '#1abc9c', // Verde turquesa
+    '#7d5fff', // Índigo
+    '#27ae60', // Verde esmeralda
+    '#e84393', // Rosa
+    '#2980b9'  // Azul cerúleo
+  ];
   
   // Métricas disponíveis para visualização
   const metrics = [
@@ -594,7 +607,7 @@ const Charts = () => {
                 type="monotone" 
                 dataKey="value" 
                 name={excludeAportesChart ? `${metricName} (Excluindo Aportes)` : metricName}
-                stroke="#4caf50" 
+                stroke="#3273dc" 
                 strokeWidth={2}
                 activeDot={{ r: 8 }}
               />
@@ -608,7 +621,7 @@ const Charts = () => {
   // Valor padrão para tipo de gráfico
   const [activeChart, setActiveChart] = useState("bar"); // Mudando o padrão para barras
 
-  // Renderizar gráfico de barras - Comparação entre períodos
+  // Renderizar gráfico de barras - Comparação entre períodos - VERSÃO ATUALIZADA COM NOVAS CORES
   const renderBarChart = () => {
     const data = prepareChartData();
     const metricName = filterByCategory && selectedCategories.length > 0 
@@ -625,23 +638,58 @@ const Charts = () => {
       : chartTitle;
     
     return (
-      <div className="chart-container">
-        <h3>
-          {titleWithAportes}
-          {filterByCategory && selectedCategories.length > 0 && (
-            <span className="selected-categories-count">{selectedCategories.length}</span>
-          )}
-        </h3>
+      <div className="chart-container enhanced-chart">
+        <div className="chart-header">
+          <h3>
+            {titleWithAportes}
+            {filterByCategory && selectedCategories.length > 0 && (
+              <span className="selected-categories-count">{selectedCategories.length}</span>
+            )}
+          </h3>
+        </div>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart
             data={data}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+            barGap={8}
+            barCategoryGap={20}
           >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={(value) => formatCurrency(value)} />
-            <Tooltip formatter={(value) => formatCurrency(value)} />
-            <Legend />
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              vertical={false} 
+              stroke="#eaeaea" 
+            />
+            <XAxis 
+              dataKey="name" 
+              tick={{ fill: '#555', fontSize: 12 }}
+              tickLine={false}
+              axisLine={{ stroke: '#e0e0e0' }}
+              dy={10}
+            />
+            <YAxis 
+              tickFormatter={(value) => formatCurrency(value)} 
+              tick={{ fill: '#555', fontSize: 12 }}
+              tickLine={false}
+              axisLine={{ stroke: '#e0e0e0' }}
+              dx={-10}
+            />
+            <Tooltip 
+              formatter={(value) => formatCurrency(value)}
+              contentStyle={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                border: 'none',
+                borderRadius: '6px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                padding: '10px 14px',
+                fontSize: '13px'
+              }}
+            />
+            <Legend 
+              verticalAlign="top"
+              height={36}
+              iconType="circle"
+              iconSize={8}
+            />
             
             {filterByCategory && selectedCategories.length > 0 ? (
               // Quando filtrando por categorias, renderizar uma barra para cada categoria
@@ -653,10 +701,10 @@ const Charts = () => {
                   <Bar 
                     key={categoryId}
                     dataKey={categoryName}
-                    name={categoryName} // Mostra apenas o nome da categoria na legenda
+                    name={categoryName} 
                     fill={COLORS[index % COLORS.length]}
-                    // Reduzir o tamanho das barras quando houver múltiplas categorias
                     barSize={Math.max(40 - (selectedCategories.length * 2), 15)}
+                    radius={[4, 4, 0, 0]}
                   />
                 );
               })
@@ -665,10 +713,14 @@ const Charts = () => {
               <Bar 
                 dataKey="value" 
                 name={excludeAportesChart ? `${metricName} (Excluindo Aportes)` : metricName}
-                fill="#2196f3"
+                fill="#3273dc"
+                radius={[4, 4, 0, 0]}
               >
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index % COLORS.length]} 
+                  />
                 ))}
               </Bar>
             )}
@@ -677,8 +729,6 @@ const Charts = () => {
       </div>
     );
   };
-
-
 
   // Preparar dados para tabela de resumo e realizar cálculos adicionais
   const prepareSummaryTableData = () => {
@@ -736,8 +786,10 @@ const Charts = () => {
   return (
     <MainLayout userName={user?.displayName || "Usuário"}>
       <div className="charts-container">
-        <div className="charts-header">
-          <h1>Gráficos Financeiros</h1>
+        <div className="period-selector-container">
+          <div className="period-selector-header">
+            <h2>Gráficos Financeiros</h2>
+          </div>
         </div>
         
         {error && (
