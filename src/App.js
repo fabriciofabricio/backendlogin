@@ -18,7 +18,7 @@ import Settings from "./components/Settings/Settings";
 import Charts from "./components/Charts/Charts";
 import "./App.css";
 
-// Componente que mantém todos os componentes carregados e alterna visibilidade
+// Componente que renderiza condicionalmente os componentes com base na rota
 function PersistentComponents() {
   const location = useLocation();
   const [loaded, setLoaded] = useState(false);
@@ -38,7 +38,7 @@ function PersistentComponents() {
   }, [location.pathname]);
   
   // Helper function para determinar qual componente mostrar
-  const shouldShow = (path) => {
+  const shouldRender = (path) => {
     // Se estamos na rota raiz, mostre o dashboard por padrão
     if (currentPath === "/" || currentPath === "") {
       return path === "/dashboard";
@@ -59,40 +59,17 @@ function PersistentComponents() {
     <>
       {loaded && (
         <>
-          <div style={{ display: shouldShow("/select-categories") ? "block" : "none" }}>
-            <CategorySelection />
-          </div>
-          <div style={{ display: shouldShow("/dashboard") ? "block" : "none" }}>
-            <Dashboard />
-          </div>
-          <div style={{ display: shouldShow("/dre") ? "block" : "none" }}>
-            <DREReport />
-          </div>
-          <div style={{ display: shouldShow("/charts") ? "block" : "none" }}>
-            <Charts />
-          </div>
-          <div style={{ display: shouldShow("/transactions") ? "block" : "none" }}>
-            <Transactions />
-          </div>
-          <div style={{ display: shouldShow("/categorias") ? "block" : "none" }}>
-            <CategoryDetails />
-          </div>
-          {/* Usando both com e sem acentos para garantir compatibilidade */}
-          <div style={{ display: shouldShow("/não-categorizados") || shouldShow("/nao-categorizados") ? "block" : "none" }}>
-            <NonCategorized />
-          </div>
-          <div style={{ display: shouldShow("/editar-categorizados") ? "block" : "none" }}>
-            <EditCategorized />
-          </div>
-          <div style={{ display: shouldShow("/periods") ? "block" : "none" }}>
-            <PeriodManager />
-          </div>
-          <div style={{ display: shouldShow("/cash-entry") ? "block" : "none" }}>
-            <CashEntry />
-          </div>
-          <div style={{ display: shouldShow("/settings") ? "block" : "none" }}>
-            <Settings />
-          </div>
+          {shouldRender("/select-categories") && <CategorySelection />}
+          {shouldRender("/dashboard") && <Dashboard />}
+          {shouldRender("/dre") && <DREReport />}
+          {shouldRender("/charts") && <Charts />}
+          {shouldRender("/transactions") && <Transactions />}
+          {shouldRender("/categorias") && <CategoryDetails />}
+          {(shouldRender("/não-categorizados") || shouldRender("/nao-categorizados")) && <NonCategorized />}
+          {shouldRender("/editar-categorizados") && <EditCategorized />}
+          {shouldRender("/periods") && <PeriodManager />}
+          {shouldRender("/cash-entry") && <CashEntry />}
+          {shouldRender("/settings") && <Settings />}
         </>
       )}
     </>
