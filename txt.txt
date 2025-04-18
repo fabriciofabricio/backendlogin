@@ -4,12 +4,18 @@ Animações de carregamento de pagina,
 
 
 V   Dashboard
-V   Relatório DRE (animação no relatorio dre com borda preta me incomodando)
+V   Relatório DRE (quando dou refrash na pagina pisca os dados zerados e ai sim carrega o dre com dados atualizados)
 V   Detalhes por Categoria
 X   Gráficos (icones e botão de barra e linha)
 V   Itens não Categorizados
 V   Editar Itens Categorizados
 
-X   Gerenciador de Períodos
+X   Gerenciador de Períodos  (pop up de erro quando ja existe um periodo do mesmo banco que estou tentando adicionar sai todo estranho)
 X   Entrada de Dinheiro
 X   Configurações
+
+Trocar remover aporte de socio para adicionar aporte de socio, e remover o aporte de socio do resultado final do DRE
+
+Calculador automatico de impostos
+
+Leitor e adicionar dados da folha de pagamento no DRE

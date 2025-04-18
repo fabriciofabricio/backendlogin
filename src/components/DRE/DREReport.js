@@ -210,6 +210,42 @@ const DREReport = () => {
                   categorized = true;
                 }
               }
+              // Se ainda não foi categorizado, verificar se corresponde a algum padrão
+              else if (!categorized) {
+                const bankName = transaction.bankInfo?.org || "";
+                let patternKey = null;
+                
+                // Verificar padrões para o banco Stone
+                if (bankName.includes("Stone")) {
+                  if (normalizedDescription.endsWith("maquininha")) {
+                    patternKey = "padrao_stone_maquininha";
+                  } 
+                  else if (normalizedDescription.includes("ifood")) {
+                    patternKey = "padrao_stone_ifood";
+                  }
+                  else if (normalizedDescription.endsWith("débito")) {
+                    patternKey = "padrao_stone_debito";
+                  }
+                  else if (normalizedDescription.includes("crédito")) {
+                    patternKey = "padrao_stone_credito";
+                  }
+                }
+                // Verificar padrões para o banco SICOOB
+                else if (bankName.includes("COOP DE CRED") || bankName.includes("SICOOB")) {
+                  if (normalizedDescription.toUpperCase().includes("IFOOD")) {
+                    patternKey = "padrao_sicoob_ifood";
+                  }
+                }
+                
+                // Se encontrou um padrão e existe mapeamento para esse padrão
+                if (patternKey && categoryMappings[patternKey]) {
+                  mapping = categoryMappings[patternKey];
+                  mainCategory = mapping.groupName;
+                  subCategory = mapping.categoryName;
+                  categorized = true;
+                  console.log(`Transação "${normalizedDescription}" categorizada pelo padrão ${patternKey}`);
+                }
+              }
               
               if (categorized && dreStructure[mainCategory]) {
                 if (!dreStructure[mainCategory].items[subCategory]) {

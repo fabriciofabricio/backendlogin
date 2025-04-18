@@ -86,7 +86,7 @@ const CategorySelection = () => {
           "Condomínio",
           "Energia Elétrica",
           "Gás",
-          "Água / Esgoto (Sanepar)",
+          "Água / Esgoto",
           "Internet",
           "Telefone e TV a Cabo",
           "Estacionamento",
@@ -136,7 +136,6 @@ const CategorySelection = () => {
         displayName: "(-) INVESTIMENTOS",
         items: [
           "Obras e Instalações",
-          "Informática",
           "Equipamentos / Aplicações em Fundos"
         ]
       }

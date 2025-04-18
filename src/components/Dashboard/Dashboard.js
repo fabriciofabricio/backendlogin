@@ -128,6 +128,43 @@ const Dashboard = () => {
                   isCategorized = true;
                 }
               }
+              // ADICIONAR ESTE BLOCO: Verificar padrões específicos
+              else if (!isCategorized) {
+                const bankName = transaction.bankInfo?.org || "";
+                let patternKey = null;
+                
+                // Verificar padrões para o banco Stone
+                if (bankName.includes("Stone")) {
+                  if (normalizedDescription.endsWith("maquininha")) {
+                    patternKey = "padrao_stone_maquininha";
+                  } 
+                  else if (normalizedDescription.includes("ifood")) {
+                    patternKey = "padrao_stone_ifood";
+                  }
+                  else if (normalizedDescription.endsWith("débito")) {
+                    patternKey = "padrao_stone_debito";
+                  }
+                  else if (normalizedDescription.includes("crédito")) {
+                    patternKey = "padrao_stone_credito";
+                  }
+                }
+                // Verificar padrões para o banco SICOOB
+                else if (bankName.includes("COOP DE CRED") || bankName.includes("SICOOB")) {
+                  if (normalizedDescription.toUpperCase().includes("IFOOD")) {
+                    patternKey = "padrao_sicoob_ifood";
+                  }
+                }
+                
+                // Se encontrou um padrão e existe mapeamento para esse padrão
+                if (patternKey && categoryMappings[patternKey]) {
+                  const mapping = categoryMappings[patternKey];
+                  mainCategory = mapping.groupName;
+                  categoryPath = mapping.categoryPath || "";
+                  isCategorized = true;
+                  console.log(`Dashboard: Transação "${normalizedDescription}" categorizada pelo padrão ${patternKey}`);
+                }
+              }
+              // FIM DO BLOCO ADICIONADO
               
               // Check if this is an "aporte de sócio"
               if ((categoryPath && categoryPath.toLowerCase().includes('aporte')) || 
@@ -371,6 +408,43 @@ const Dashboard = () => {
                     isCategorized = true;
                   }
                 }
+                // ADICIONAR ESTE BLOCO: Verificar padrões específicos
+                else if (!isCategorized) {
+                  const bankName = transaction.bankInfo?.org || "";
+                  let patternKey = null;
+                  
+                  // Verificar padrões para o banco Stone
+                  if (bankName.includes("Stone")) {
+                    if (normalizedDescription.endsWith("maquininha")) {
+                      patternKey = "padrao_stone_maquininha";
+                    } 
+                    else if (normalizedDescription.includes("ifood")) {
+                      patternKey = "padrao_stone_ifood";
+                    }
+                    else if (normalizedDescription.endsWith("débito")) {
+                      patternKey = "padrao_stone_debito";
+                    }
+                    else if (normalizedDescription.includes("crédito")) {
+                      patternKey = "padrao_stone_credito";
+                    }
+                  }
+                  // Verificar padrões para o banco SICOOB
+                  else if (bankName.includes("COOP DE CRED") || bankName.includes("SICOOB")) {
+                    if (normalizedDescription.toUpperCase().includes("IFOOD")) {
+                      patternKey = "padrao_sicoob_ifood";
+                    }
+                  }
+                  
+                  // Se encontrou um padrão e existe mapeamento para esse padrão
+                  if (patternKey && categoryMappings[patternKey]) {
+                    const mapping = categoryMappings[patternKey];
+                    mainCategory = mapping.groupName;
+                    categoryPath = mapping.categoryPath || "";
+                    isCategorized = true;
+                    console.log(`PeriodsSummary: Transação "${normalizedDescription}" categorizada pelo padrão ${patternKey}`);
+                  }
+                }
+                // FIM DO BLOCO ADICIONADO
                 
                 // Check if this is an "aporte de sócio"
                 if (categoryPath.toLowerCase().includes('aporte') || 

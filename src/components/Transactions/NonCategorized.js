@@ -1,7 +1,17 @@
 // src/components/Transactions/NonCategorized.js
 import React, { useState, useEffect } from "react";
 import { auth, db, storage } from "../../firebase/config";
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  doc, 
+  getDoc, 
+  updateDoc, 
+  setDoc,
+  serverTimestamp 
+} from "firebase/firestore";
 import { ref, getBlob } from "firebase/storage";
 import { parseOFXContent } from "../../utils/OFXParser";
 import MainLayout from "../Layout/MainLayout";
@@ -25,6 +35,7 @@ const NonCategorized = () => {
   const [filterValue, setFilterValue] = useState("all"); // "all", "positive", "negative"
   const [autoMappedTransactions, setAutoMappedTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [processingAutoMap, setProcessingAutoMap] = useState(false);
   const transactionsPerPage = 10;
 
   // Carregar usuário, períodos e categorias
@@ -173,29 +184,51 @@ const NonCategorized = () => {
     }
   }, [selectedPeriod, categoryMappings]);
 
-  // Verificar se existe alguma categorização automática que precisa ser salva
+  // ATUALIZADO: Verificar se existe alguma categorização automática que precisa ser salva
   useEffect(() => {
-    if (autoMappedTransactions.length > 0) {
-      // Verificar se as transações já não foram salvas anteriormente
-      const unsavedTransactions = autoMappedTransactions.filter(transaction => {
-        // Verificar se não existe um mapeamento para esta transação
-        return !Object.values(categoryMappings).some(mapping => 
-          mapping.isSpecificMapping && 
-          mapping.transactionId === transaction.id && 
-          mapping.autoMapped === true
-        );
+    // Só executar este efeito se houver transações auto-mapeadas e não estivermos carregando
+    // ou já processando a lista
+    if (autoMappedTransactions.length > 0 && !loading && !processingAutoMap) {
+      setProcessingAutoMap(true);
+      
+      // Verificar por transações que ainda não foram categorizadas por um padrão
+      const hasUnsavedPatterns = autoMappedTransactions.some(transaction => {
+        // Verificar se existe um padrão para este tipo de transação
+        const desc = transaction.description.trim().toLowerCase();
+        const bankName = transaction.bankInfo?.org || "";
+        
+        if (bankName.includes("Stone")) {
+          if (desc.endsWith("maquininha") && !categoryMappings["padrao_stone_maquininha"]) {
+            return true;
+          }
+          if (desc.includes("ifood") && !categoryMappings["padrao_stone_ifood"]) {
+            return true;
+          }
+          if (desc.endsWith("débito") && !categoryMappings["padrao_stone_debito"]) {
+            return true;
+          }
+          if (desc.includes("crédito") && !categoryMappings["padrao_stone_credito"]) {
+            return true;
+          }
+        } else if (bankName.includes("COOP DE CRED") || bankName.includes("SICOOB")) {
+          if (desc.toUpperCase().includes("IFOOD") && !categoryMappings["padrao_sicoob_ifood"]) {
+            return true;
+          }
+        }
+        
+        return false;
       });
       
-      if (unsavedTransactions.length > 0) {
-        // Só exibir o aviso e salvar se realmente houver transações não salvas
-        setAutoMappedTransactions(unsavedTransactions);
-        saveAutoMappedTransactions();
+      if (hasUnsavedPatterns) {
+        // Salvar os padrões de categorização
+        saveAutoMappedTransactions(autoMappedTransactions);
       } else {
-        // Limpar o array se todas as transações já estiverem salvas
+        // Limpar o array e estado de processamento se todos os padrões já existirem
         setAutoMappedTransactions([]);
+        setProcessingAutoMap(false);
       }
     }
-  }, [autoMappedTransactions, categoryMappings]);
+  }, [autoMappedTransactions, categoryMappings, loading]); 
 
   // Efeito para filtrar transações quando mudar a busca ou filtro
   useEffect(() => {
@@ -234,56 +267,180 @@ const NonCategorized = () => {
     setTotalPages(Math.max(1, Math.ceil(filtered.length / transactionsPerPage)));
   };
 
-  // Salvar categorizações automáticas no Firestore
-  const saveAutoMappedTransactions = async () => {
+  // SIMPLIFICADO: Salvar categorizações automáticas no Firestore sem armazenar IDs de transações
+  const saveAutoMappedTransactions = async (transactions = []) => {
     try {
-      if (!auth.currentUser || autoMappedTransactions.length === 0) return;
+      if (!auth.currentUser) return;
       
-      console.log("Salvando categorizações automáticas:", autoMappedTransactions.length);
+      // Use transactions passed as parameter, or fall back to state if not provided
+      const transactionsToProcess = transactions.length > 0 ? 
+        transactions : autoMappedTransactions;
+      
+      if (transactionsToProcess.length === 0) {
+        setProcessingAutoMap(false);
+        return;
+      }
+      
+      setLoading(true);
+      console.log("Processando categorizações automáticas:", transactionsToProcess.length);
       
       // Atualizar o mapeamento de categorias
       const updatedMappings = { ...categoryMappings };
       
-      autoMappedTransactions.forEach(transaction => {
+      // Agrupar transações por padrões (em vez de salvar cada uma individualmente)
+      const patternGroups = {};
+      
+      // Primeiro passo: identificar padrões e agrupar transações
+      transactionsToProcess.forEach(transaction => {
         const normalizedDescription = transaction.description.trim().toLowerCase();
         
-        // Criar mapeamento específico para o ID desta transação
-        const uniqueKey = `${normalizedDescription}_${transaction.id}`;
+        // Verificar padrões específicos para criar regras genéricas
+        let useGenericRule = false;
+        let patternKey = '';
         
-        updatedMappings[uniqueKey] = {
-          categoryName: transaction.category,
-          categoryPath: transaction.categoryPath,
-          groupName: transaction.groupName || transaction.categoryPath.split('.')[0],
-          lastUsed: new Date(),
-          originalDescription: normalizedDescription,
-          isSpecificMapping: true,
-          transactionId: transaction.id,
-          autoMapped: true
-        };
+        // Identificar padrões específicos do banco Stone
+        if (transaction.bankInfo && transaction.bankInfo.org && 
+            transaction.bankInfo.org.includes("Stone")) {
+            
+          // Padrão: Transações que terminam com "| Maquininha"
+          if (normalizedDescription.endsWith("maquininha")) {
+            patternKey = "padrao_stone_maquininha";
+            useGenericRule = true;
+          }
+          // Padrão: Transações que contêm "ifood"
+          else if (normalizedDescription.includes("ifood")) {
+            patternKey = "padrao_stone_ifood";
+            useGenericRule = true;
+          }
+          // Padrão: Transações que terminam com "| Débito"
+          else if (normalizedDescription.endsWith("débito")) {
+            patternKey = "padrao_stone_debito";
+            useGenericRule = true;
+          }
+          // Padrão: Transações que contêm "Crédito"
+          else if (normalizedDescription.includes("crédito")) {
+            patternKey = "padrao_stone_credito";
+            useGenericRule = true;
+          }
+        }
+        // Identificar padrões para o banco SICOOB
+        else if (transaction.bankInfo && transaction.bankInfo.org && 
+                (transaction.bankInfo.org.includes("COOP DE CRED") || 
+                 transaction.bankInfo.org.includes("SICOOB"))) {
+                  
+          // Padrão: Transações que contêm "IFOOD"
+          if (normalizedDescription.toUpperCase().includes("IFOOD")) {
+            patternKey = "padrao_sicoob_ifood";
+            useGenericRule = true;
+          }
+          // Outros padrões específicos do SICOOB
+        }
+        
+        // Se for um padrão genérico, use-o como chave de agrupamento
+        if (useGenericRule && patternKey) {
+          if (!patternGroups[patternKey]) {
+            patternGroups[patternKey] = {
+              transactions: [],
+              category: transaction.category,
+              categoryPath: transaction.categoryPath,
+              groupName: transaction.groupName || transaction.categoryPath.split('.')[0],
+              bankInfo: transaction.bankInfo,
+              patternKey: patternKey
+            };
+          }
+          
+          patternGroups[patternKey].transactions.push(transaction);
+        } else {
+          // Para transações sem padrão específico, usar a descrição normalizada como chave
+          if (!patternGroups[normalizedDescription]) {
+            patternGroups[normalizedDescription] = {
+              transactions: [],
+              category: transaction.category,
+              categoryPath: transaction.categoryPath,
+              groupName: transaction.groupName || transaction.categoryPath.split('.')[0],
+              bankInfo: transaction.bankInfo,
+              patternKey: null
+            };
+          }
+          
+          patternGroups[normalizedDescription].transactions.push(transaction);
+        }
       });
       
-      // Salvar no Firestore
+      // Segundo passo: criar mapeamentos com base nos grupos identificados
+      Object.entries(patternGroups).forEach(([key, group]) => {
+        if (group.patternKey) {
+          // SIMPLIFICADO: Não armazenar IDs das transações, apenas o padrão
+          updatedMappings[group.patternKey] = {
+            categoryName: group.category,
+            categoryPath: group.categoryPath,
+            groupName: group.groupName,
+            lastUsed: new Date(),
+            isSpecificMapping: false,
+            patternRule: true,
+            // Armazenar uma descrição de exemplo para referência
+            sampleDescription: group.transactions[0].description,
+            bankInfo: group.bankInfo ? {
+              org: group.bankInfo.org
+            } : null
+          };
+        } else {
+          // Para transações sem padrão específico, criar um mapeamento normal
+          const normalizedDescription = key;
+          
+          updatedMappings[normalizedDescription] = {
+            categoryName: group.category,
+            categoryPath: group.categoryPath,
+            groupName: group.groupName,
+            lastUsed: new Date(),
+            isSpecificMapping: false
+          };
+        }
+      });
+      
+      // Prepare the Firestore reference
       const categoryMappingsRef = doc(db, "categoryMappings", auth.currentUser.uid);
-      await updateDoc(categoryMappingsRef, {
-        mappings: updatedMappings,
-        updatedAt: serverTimestamp()
-      });
       
-      // Atualizar estado local
+      // Check if the document exists first
+      const docSnapshot = await getDoc(categoryMappingsRef);
+      
+      if (docSnapshot.exists()) {
+        // Document exists, use updateDoc
+        await updateDoc(categoryMappingsRef, {
+          mappings: updatedMappings,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        // Document doesn't exist, use setDoc
+        await setDoc(categoryMappingsRef, {
+          userId: auth.currentUser.uid,
+          mappings: updatedMappings,
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp()
+        });
+      }
+      
+      // Update the local state
       setCategoryMappings(updatedMappings);
       
-      // Limpar lista de transações automáticas pendentes
+      // Clear the autoMappedTransactions to prevent duplicate processing
       setAutoMappedTransactions([]);
       
-      // Recarregar lista de transações
-      await loadNonCategorizedTransactions();
-      
-      setSuccess(`${autoMappedTransactions.length} transações categorizadas automaticamente e salvas.`);
+      // Show success message
+      setSuccess(`${transactionsToProcess.length} transações categorizadas automaticamente e salvas.`);
       setTimeout(() => setSuccess(""), 3000);
+      
+      // Wait a bit before reloading to prevent immediate re-processing
+      setTimeout(() => {
+        loadNonCategorizedTransactions();
+      }, 1000);
       
     } catch (error) {
       console.error("Erro ao salvar categorizações automáticas:", error);
-      setError("Não foi possível salvar as categorizações automáticas.");
+      setError(`Não foi possível salvar as categorizações automáticas: ${error.message}`);
+    } finally {
+      setLoading(false);
+      setProcessingAutoMap(false);
     }
   };
 
@@ -291,6 +448,7 @@ const NonCategorized = () => {
   const loadNonCategorizedTransactions = async () => {
     try {
       setLoading(true);
+      setAutoMappedTransactions([]);
       
       if (!auth.currentUser || !selectedPeriod) return;
       
@@ -305,15 +463,17 @@ const NonCategorized = () => {
       const nonCategorizedTransactions = [];
       const autoMappedToSave = [];
       
-      // Identificar mapeamentos específicos por ID de transação
-      const specificMappings = {};
+      // Identificar mapeamentos por padrão
+      const patternMappings = {};
       
-      // Primeiro, identificamos todos os mapeamentos específicos (para transações únicas)
+      // Primeiro, identificamos todos os mapeamentos de padrão
       Object.entries(categoryMappings).forEach(([key, mapping]) => {
-        if (mapping.isSpecificMapping && mapping.transactionId) {
-          specificMappings[mapping.transactionId] = mapping;
+        if (mapping.patternRule) {
+          patternMappings[key] = mapping;
         }
       });
+      
+      console.log("Mapeamentos por padrão encontrados:", Object.keys(patternMappings));
       
       // Processar cada arquivo OFX
       for (const fileDoc of ofxFilesSnapshot.docs) {
@@ -327,42 +487,69 @@ const NonCategorized = () => {
             const parseResult = parseOFXContent(fileContent);
             const transactions = parseResult.transactions;
             
+            console.log(`Processando ${transactions.length} transações do arquivo ${fileData.fileName}`);
+            
             // Filtrar transações não categorizadas
             transactions.forEach(transaction => {
               const normalizedDescription = transaction.description.trim().toLowerCase();
               let isCategorized = false;
               
-              // Verificar se tem mapeamento específico por ID
-              if (specificMappings[transaction.id]) {
-                isCategorized = true;
-              } 
-              // Verificar se tem mapeamento por descrição
-              else if (categoryMappings[normalizedDescription]) {
+              // Verificar se a descrição tem mapeamento direto
+              if (categoryMappings[normalizedDescription]) {
                 const mapping = categoryMappings[normalizedDescription];
-                // Verificar se não é um mapeamento específico para outra transação
                 if (!mapping.isSpecificMapping) {
+                  console.log(`Transação "${normalizedDescription}" já categorizada (mapeamento por descrição)`);
                   isCategorized = true;
                 }
               }
-              // Verificar se foi categorizada automaticamente durante o parsing
-              else if (transaction.autoMapped && transaction.category && transaction.categoryPath) {
-                // Verificar se já existe um mapeamento específico para esta transação no Firestore
-                const hasExistingMapping = Object.values(categoryMappings).some(mapping => 
-                  mapping.isSpecificMapping && 
-                  mapping.transactionId === transaction.id && 
-                  mapping.autoMapped === true
-                );
+              
+              // Verificar se a transação corresponde a algum padrão
+              if (!isCategorized) {
+                const bankName = transaction.bankInfo?.org || "";
                 
-                // Apenas adicionar à lista de autoMappedToSave se ainda não existir mapeamento
-                if (!hasExistingMapping) {
-                  // Esta transação foi categorizada automaticamente, mas não está salva
-                  autoMappedToSave.push({
-                    ...transaction,
-                    id: transaction.id,
-                    description: transaction.description,
-                    groupName: transaction.categoryPath.split('.')[0]
-                  });
+                // Verificar padrões para o banco Stone
+                if (bankName.includes("Stone")) {
+                  if (normalizedDescription.endsWith("maquininha") && 
+                      patternMappings["padrao_stone_maquininha"]) {
+                    console.log(`Transação "${normalizedDescription}" categorizada por padrão maquininha`);
+                    isCategorized = true;
+                  }
+                  else if (normalizedDescription.includes("ifood") && 
+                          patternMappings["padrao_stone_ifood"]) {
+                    console.log(`Transação "${normalizedDescription}" categorizada por padrão ifood`);
+                    isCategorized = true;
+                  }
+                  else if (normalizedDescription.endsWith("débito") && 
+                          patternMappings["padrao_stone_debito"]) {
+                    console.log(`Transação "${normalizedDescription}" categorizada por padrão débito`);
+                    isCategorized = true;
+                  }
+                  else if (normalizedDescription.includes("crédito") && 
+                          patternMappings["padrao_stone_credito"]) {
+                    console.log(`Transação "${normalizedDescription}" categorizada por padrão crédito`);
+                    isCategorized = true;
+                  }
                 }
+                // Verificar padrões para o banco SICOOB
+                else if (bankName.includes("COOP DE CRED") || bankName.includes("SICOOB")) {
+                  if (normalizedDescription.toUpperCase().includes("IFOOD") && 
+                      patternMappings["padrao_sicoob_ifood"]) {
+                    console.log(`Transação "${normalizedDescription}" categorizada por padrão SICOOB ifood`);
+                    isCategorized = true;
+                  }
+                }
+              }
+              
+              // Verificar se foi categorizada automaticamente durante o parsing
+              if (!isCategorized && transaction.autoMapped && transaction.category && transaction.categoryPath) {
+                console.log(`Transação "${transaction.description}" auto-mapeada para ${transaction.category}`);
+                // Esta transação foi categorizada automaticamente, mas não está salva
+                autoMappedToSave.push({
+                  ...transaction,
+                  id: transaction.id,
+                  description: transaction.description,
+                  groupName: transaction.categoryPath.split('.')[0]
+                });
                 
                 // A transação está categorizada, mesmo que ainda não esteja salva
                 isCategorized = true;
@@ -385,17 +572,16 @@ const NonCategorized = () => {
         }
       }
       
-      // Se houver transações categorizadas automaticamente, mas não salvas, atualizarmos o estado
-      if (autoMappedToSave.length > 0) {
+      // ATUALIZADO: Se houver transações categorizadas automaticamente, mas não salvas
+      if (autoMappedToSave.length > 0 && !processingAutoMap) {
         console.log(`Encontradas ${autoMappedToSave.length} transações com categorização automática não salva.`);
         setAutoMappedTransactions(autoMappedToSave);
-      } else {
-        // Limpar o estado para não mostrar a mensagem
-        setAutoMappedTransactions([]);
       }
       
       // Ordenar transações por data (mais recente primeiro)
       nonCategorizedTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      console.log(`Total de transações não categorizadas: ${nonCategorizedTransactions.length}`);
       
       setTransactions(nonCategorizedTransactions);
       setFilteredTransactions(nonCategorizedTransactions);
@@ -488,10 +674,44 @@ const NonCategorized = () => {
       // Atualizar o mapeamento de categorias
       const updatedMappings = { ...categoryMappings };
       
+      // Primeiro, verificar se podemos agrupar transações similares
+      const transactionsByPattern = {};
+      
       pendingTransactions.forEach(transaction => {
         const normalizedDescription = transaction.description.trim().toLowerCase();
+        let patternKey = null;
         
-        if (transaction.categoryPath) {
+        // Verificar se a transação segue algum padrão conhecido
+        if (transaction.bankInfo?.org?.includes("Stone")) {
+          if (normalizedDescription.endsWith("maquininha")) {
+            patternKey = "padrao_stone_maquininha";
+          } else if (normalizedDescription.includes("ifood")) {
+            patternKey = "padrao_stone_ifood";
+          } else if (normalizedDescription.endsWith("débito")) {
+            patternKey = "padrao_stone_debito";
+          } else if (normalizedDescription.includes("crédito")) {
+            patternKey = "padrao_stone_credito";
+          }
+        } else if (transaction.bankInfo?.org?.includes("SICOOB") || 
+                  transaction.bankInfo?.org?.includes("COOP DE CRED")) {
+          if (normalizedDescription.toUpperCase().includes("IFOOD")) {
+            patternKey = "padrao_sicoob_ifood";
+          }
+        }
+        
+        if (patternKey) {
+          if (!transactionsByPattern[patternKey]) {
+            transactionsByPattern[patternKey] = {
+              transactions: [],
+              category: transaction.category,
+              categoryPath: transaction.categoryPath,
+              groupName: transaction.groupName,
+              bankInfo: transaction.bankInfo
+            };
+          }
+          transactionsByPattern[patternKey].transactions.push(transaction);
+        } else {
+          // Para transações sem padrão, salvar com a descrição normalizada
           updatedMappings[normalizedDescription] = {
             categoryName: transaction.category,
             categoryPath: transaction.categoryPath,
@@ -501,12 +721,44 @@ const NonCategorized = () => {
         }
       });
       
+      // Agora, processar os padrões de transações
+      Object.entries(transactionsByPattern).forEach(([patternKey, group]) => {
+        // Criar ou atualizar o padrão
+        updatedMappings[patternKey] = {
+          categoryName: group.category,
+          categoryPath: group.categoryPath,
+          groupName: group.groupName,
+          lastUsed: new Date(),
+          isSpecificMapping: false,
+          patternRule: true,
+          sampleDescription: group.transactions[0].description,
+          bankInfo: group.bankInfo ? {
+            org: group.bankInfo.org
+          } : null
+        };
+      });
+      
       // Salvar no Firestore
       const categoryMappingsRef = doc(db, "categoryMappings", auth.currentUser.uid);
-      await updateDoc(categoryMappingsRef, {
-        mappings: updatedMappings,
-        updatedAt: serverTimestamp()
-      });
+      
+      // Verificar se o documento já existe
+      const docSnapshot = await getDoc(categoryMappingsRef);
+      
+      if (docSnapshot.exists()) {
+        // Atualizar o documento existente
+        await updateDoc(categoryMappingsRef, {
+          mappings: updatedMappings,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        // Criar um novo documento
+        await setDoc(categoryMappingsRef, {
+          userId: auth.currentUser.uid,
+          mappings: updatedMappings,
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp()
+        });
+      }
       
       // Atualizar o estado local
       setCategoryMappings(updatedMappings);
@@ -552,7 +804,7 @@ const NonCategorized = () => {
   return (
     <MainLayout userName={user?.displayName || "Usuário"}>
       <div className="non-categorized-container">
-        {/* Novo seletor de período no padrão do Dashboard */}
+        {/* Seletor de período no padrão do Dashboard */}
         <div className="period-selector-container">
           <div className="period-selector-header">
             <h2>Transações Não Categorizadas</h2>
@@ -598,7 +850,7 @@ const NonCategorized = () => {
           </div>
         )}
         
-        {/* Nova barra de pesquisa com filtro por valores positivos/negativos */}
+        {/* Barra de pesquisa com filtro por valores positivos/negativos */}
         <div className="transactions-filters">
           <div className="search-filter">
             <input
