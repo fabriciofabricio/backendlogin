@@ -789,3 +789,62 @@
   width: 100%; /* Cada card ocupa 100% do espaço da coluna */
   box-sizing: border-box;
 }
+
+/* Estilos para o controle de períodos na seção de Evolução dos Resultados */
+.summary-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.periods-to-show-dropdown {
+  display: flex;
+  align-items: center;
+}
+
+.periods-to-show-dropdown label {
+  margin-right: 10px;
+  font-weight: 500;
+  color: #4a5568;
+  font-size: 14px;
+}
+
+.period-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  min-width: 220px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-select:hover {
+  border-color: #b3b3b3;
+}
+
+.period-select:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 768px) {
+  .summary-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .periods-to-show-dropdown,
+  .exclude-aportes-toggle {
+    width: 100%;
+  }
+  
+  .period-select {
+    width: 100%;
+  }
+}

@@ -25,21 +25,35 @@ const Dashboard = () => {
     receitaBruta: 0,
     custosDiretos: 0,
     despesasOperacionais: 0,
-    despesasTotais: 0, // Nova propriedade para a soma de custos diretos e despesas operacionais
+    despesasTotais: 0, 
     lucroBruto: 0,
     resultadoFinal: 0,
-    aportesValue: 0,               // Track aportes separately
-    resultadoFinalSemAportes: 0    // Track result without aportes
+    aportesValue: 0,              
+    resultadoFinalComAportes: 0    
   });
   const [currentPeriod, setCurrentPeriod] = useState("");
   const [periodLabel, setPeriodLabel] = useState("");
   const [periods, setPeriods] = useState([]);
   const [loadingFinancialData, setLoadingFinancialData] = useState(false);
 
-  // New state for periods summary
+  // Modificado: Inverter a lógica para que o comportamento padrão seja excluir aportes
+  const [includeAportes, setIncludeAportes] = useState(false);
+  
+  // Estado para controlar o número de períodos a serem exibidos
+  const [periodsToShow, setPeriodsToShow] = useState(6); // Valor padrão: 6
+  
   const [periodsSummary, setPeriodsSummary] = useState([]);
   const [loadingPeriodsSummary, setLoadingPeriodsSummary] = useState(false);
-  const [excludeAportes, setExcludeAportes] = useState(false);
+  
+  // Opções de períodos para o dropdown
+  const periodOptions = [
+    { value: 3, label: "3 meses" },
+    { value: 6, label: "6 meses" },
+    { value: 12, label: "12 meses" },
+    { value: 24, label: "24 meses" },
+    { value: 36, label: "36 meses" },
+    { value: 0, label: "Tudo" }
+  ];
 
   // Carregar dados financeiros do período selecionado
   const loadFinancialData = useCallback(async (period) => {
@@ -53,8 +67,8 @@ const Dashboard = () => {
         receitaBruta: 0,
         custosDiretos: 0,
         despesasOperacionais: 0,
-        deducoesReceita: 0, // Nova propriedade para rastrear deduções da receita
-        despesasTotais: 0, // Soma das categorias específicas e não categorizadas
+        deducoesReceita: 0, 
+        despesasTotais: 0,
         lucroBruto: 0,
         resultadoFinal: 0,
         outrasReceitas: 0,
@@ -62,8 +76,9 @@ const Dashboard = () => {
         investimentos: 0,
         naoCategorizado: 0,
         totalTransactions: 0,
-        aportesValue: 0,               // Add this line
-        resultadoFinalSemAportes: 0    // Add this line
+        totalWithoutOutrasReceitas: 0, // Nova propriedade para rastrear total sem outras receitas
+        aportesValue: 0,
+        resultadoFinalComAportes: 0
       };
       
       // Buscar categorias e mapeamentos necessários para o processamento
@@ -128,7 +143,7 @@ const Dashboard = () => {
                   isCategorized = true;
                 }
               }
-              // ADICIONAR ESTE BLOCO: Verificar padrões específicos
+              // Verificar padrões específicos
               else if (!isCategorized) {
                 const bankName = transaction.bankInfo?.org || "";
                 let patternKey = null;
@@ -164,7 +179,6 @@ const Dashboard = () => {
                   console.log(`Dashboard: Transação "${normalizedDescription}" categorizada pelo padrão ${patternKey}`);
                 }
               }
-              // FIM DO BLOCO ADICIONADO
               
               // Check if this is an "aporte de sócio"
               if ((categoryPath && categoryPath.toLowerCase().includes('aporte')) || 
@@ -177,21 +191,28 @@ const Dashboard = () => {
                 if (mainCategory === "RECEITA") {
                   initialData.receitaBruta += transaction.amount;
                 } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
-                  initialData.custosDiretos += transaction.amount; // Não usa mais Math.abs aqui
+                  initialData.custosDiretos += transaction.amount;
                 } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
-                  initialData.despesasOperacionais += transaction.amount; // Não usa mais Math.abs aqui
+                  initialData.despesasOperacionais += transaction.amount;
                 } else if (mainCategory === "(-) DEDUÇÕES DA RECEITA") {
-                  initialData.deducoesReceita += transaction.amount; // Nova categoria para deduções
+                  initialData.deducoesReceita += transaction.amount;
                 } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                   initialData.outrasReceitas += transaction.amount;
+                  // IMPORTANTE: Não adicionar à soma para o cálculo do totalWithoutOutrasReceitas
+                  continue;
                 } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
-                  initialData.despesasSocios += transaction.amount; // Não usa mais Math.abs aqui
+                  initialData.despesasSocios += transaction.amount;
                 } else if (mainCategory === "(-) INVESTIMENTOS") {
-                  initialData.investimentos += transaction.amount; // Não usa mais Math.abs aqui
+                  initialData.investimentos += transaction.amount;
                 }
+                
+                // Adicionar ao total sem OUTRAS RECEITAS
+                initialData.totalWithoutOutrasReceitas += transaction.amount;
               } else {
                 // Transação não categorizada - incluir no valor não categorizado
                 initialData.naoCategorizado += transaction.amount;
+                // Também adicionar ao total sem OUTRAS RECEITAS
+                initialData.totalWithoutOutrasReceitas += transaction.amount;
               }
             }
           } catch (error) {
@@ -200,7 +221,7 @@ const Dashboard = () => {
         }
       }
       
-      // 2. NOVO: Buscar e processar entradas de dinheiro para o período
+      // 2. Buscar e processar entradas de dinheiro para o período
       try {
         const cashEntriesQuery = query(
           collection(db, "cashEntries"),
@@ -233,18 +254,25 @@ const Dashboard = () => {
               // Categorizar com base no grupo principal
               if (mainCategory === "RECEITA") {
                 initialData.receitaBruta += entry.amount;
+                initialData.totalWithoutOutrasReceitas += entry.amount;
               } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
-                initialData.custosDiretos += entry.amount; // Normalmente é positivo para entradas de dinheiro
+                initialData.custosDiretos += entry.amount;
+                initialData.totalWithoutOutrasReceitas += entry.amount;
               } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
                 initialData.despesasOperacionais += entry.amount;
+                initialData.totalWithoutOutrasReceitas += entry.amount;
               } else if (mainCategory === "(-) DEDUÇÕES DA RECEITA") {
-                initialData.deducoesReceita += entry.amount; // Nova categoria para deduções
+                initialData.deducoesReceita += entry.amount;
+                initialData.totalWithoutOutrasReceitas += entry.amount;
               } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                 initialData.outrasReceitas += entry.amount;
+                // IMPORTANTE: Não adicionar ao totalWithoutOutrasReceitas
               } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
                 initialData.despesasSocios += entry.amount;
+                initialData.totalWithoutOutrasReceitas += entry.amount;
               } else if (mainCategory === "(-) INVESTIMENTOS") {
                 initialData.investimentos += entry.amount;
+                initialData.totalWithoutOutrasReceitas += entry.amount;
               }
               
               console.log(`Entrada de dinheiro processada no Dashboard: ${formatCurrency(entry.amount)} em ${mainCategory}`);
@@ -260,15 +288,15 @@ const Dashboard = () => {
                                   initialData.despesasOperacionais + initialData.naoCategorizado;
       
       // Calcular valores derivados 
-      initialData.lucroBruto = initialData.receitaBruta + initialData.custosDiretos; // Valores negativos já estão com sinal
-      const resultadoOperacional = initialData.lucroBruto + initialData.despesasOperacionais + initialData.outrasReceitas;
+      initialData.lucroBruto = initialData.receitaBruta + initialData.custosDiretos;
+      const resultadoOperacional = initialData.lucroBruto + initialData.despesasOperacionais;
       const resultadoAntesIR = resultadoOperacional + initialData.despesasSocios;
       
-      // O resultado final é simplesmente a soma de todas as transações
-      initialData.resultadoFinal = initialData.totalTransactions;
+      // MODIFICADO: O resultado final agora exclui as OUTRAS RECEITAS por padrão
+      initialData.resultadoFinal = initialData.totalWithoutOutrasReceitas;
       
-      // Calculate result without aportes
-      initialData.resultadoFinalSemAportes = initialData.resultadoFinal - initialData.aportesValue;
+      // MODIFICADO: Resultado com aportes
+      initialData.resultadoFinalComAportes = initialData.resultadoFinal + initialData.outrasReceitas;
       
       // Adicionar log para depuração
       console.log("Valores financeiros calculados:", {
@@ -278,7 +306,6 @@ const Dashboard = () => {
         despesasOperacionais: initialData.despesasOperacionais,
         despesasTotais: initialData.despesasTotais,
         lucroBruto: initialData.lucroBruto,
-        despesasOperacionais: initialData.despesasOperacionais,
         outrasReceitas: initialData.outrasReceitas,
         resultadoOperacional: resultadoOperacional,
         despesasSocios: initialData.despesasSocios,
@@ -286,9 +313,10 @@ const Dashboard = () => {
         investimentos: initialData.investimentos,
         naoCategorizado: initialData.naoCategorizado,
         resultadoFinal: initialData.resultadoFinal,
+        resultadoFinalComAportes: initialData.resultadoFinalComAportes,
         aportesValue: initialData.aportesValue,
-        resultadoFinalSemAportes: initialData.resultadoFinalSemAportes,
         totalTransactions: initialData.totalTransactions,
+        totalWithoutOutrasReceitas: initialData.totalWithoutOutrasReceitas,
       });
       
       // Calcular percentuais
@@ -313,9 +341,9 @@ const Dashboard = () => {
     } finally {
       setLoadingFinancialData(false);
     }
-  }, []);  // Empty dependency array as this function doesn't rely on any component state
+  }, []);
 
-  // Function to load period summary
+  // MODIFICADO: Function to load period summary with variable number of periods
   const loadPeriodsSummary = useCallback(async () => {
     try {
       setLoadingPeriodsSummary(true);
@@ -324,10 +352,13 @@ const Dashboard = () => {
       
       const summaryResults = [];
       
-      // Get the 6 most recent periods
-      const recentPeriods = [...periods].slice(0, 6);
+      // MODIFICADO: Aplicar o filtro de quantidade de períodos
+      // Se periodsToShow for 0, mostrar todos os períodos
+      const periodsToProcess = periodsToShow === 0 
+        ? [...periods] 
+        : [...periods].slice(0, Math.min(periodsToShow, periods.length));
       
-      for (const period of recentPeriods) {
+      for (const period of periodsToProcess) {
         // Function to calculate financial data for a specific period
         // Similar to loadFinancialData but returns data instead of setting state
         
@@ -343,9 +374,10 @@ const Dashboard = () => {
           investimentos: 0,
           naoCategorizado: 0,
           resultadoFinal: 0,
-          resultadoFinalSemAportes: 0,
+          resultadoFinalComAportes: 0,
           aportesValue: 0,
-          totalTransactions: 0
+          totalTransactions: 0,
+          totalWithoutOutrasReceitas: 0
         };
         
         // Get category mappings
@@ -408,7 +440,7 @@ const Dashboard = () => {
                     isCategorized = true;
                   }
                 }
-                // ADICIONAR ESTE BLOCO: Verificar padrões específicos
+                // Verificar padrões específicos
                 else if (!isCategorized) {
                   const bankName = transaction.bankInfo?.org || "";
                   let patternKey = null;
@@ -444,7 +476,6 @@ const Dashboard = () => {
                     console.log(`PeriodsSummary: Transação "${normalizedDescription}" categorizada pelo padrão ${patternKey}`);
                   }
                 }
-                // FIM DO BLOCO ADICIONADO
                 
                 // Check if this is an "aporte de sócio"
                 if (categoryPath.toLowerCase().includes('aporte') || 
@@ -457,20 +488,27 @@ const Dashboard = () => {
                 if (isCategorized) {
                   if (mainCategory === "RECEITA") {
                     initialData.receitaBruta += transaction.amount;
+                    initialData.totalWithoutOutrasReceitas += transaction.amount;
                   } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
                     initialData.custosDiretos += transaction.amount;
+                    initialData.totalWithoutOutrasReceitas += transaction.amount;
                   } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
                     initialData.despesasOperacionais += transaction.amount;
+                    initialData.totalWithoutOutrasReceitas += transaction.amount;
                   } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                     initialData.outrasReceitas += transaction.amount;
+                    // Não adicionar ao totalWithoutOutrasReceitas
                   } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
                     initialData.despesasSocios += transaction.amount;
+                    initialData.totalWithoutOutrasReceitas += transaction.amount;
                   } else if (mainCategory === "(-) INVESTIMENTOS") {
                     initialData.investimentos += transaction.amount;
+                    initialData.totalWithoutOutrasReceitas += transaction.amount;
                   }
                 } else {
                   // Uncategorized transaction
                   initialData.naoCategorizado += transaction.amount;
+                  initialData.totalWithoutOutrasReceitas += transaction.amount;
                 }
               }
             } catch (error) {
@@ -514,16 +552,22 @@ const Dashboard = () => {
                 // Categorize based on main category
                 if (mainCategory === "RECEITA") {
                   initialData.receitaBruta += entry.amount;
+                  initialData.totalWithoutOutrasReceitas += entry.amount;
                 } else if (mainCategory === "(-) CUSTOS DAS MERCADORIAS VENDIDAS (CMV)") {
                   initialData.custosDiretos += entry.amount;
+                  initialData.totalWithoutOutrasReceitas += entry.amount;
                 } else if (mainCategory === "(-) DESPESAS OPERACIONAIS") {
                   initialData.despesasOperacionais += entry.amount;
+                  initialData.totalWithoutOutrasReceitas += entry.amount;
                 } else if (mainCategory === "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
                   initialData.outrasReceitas += entry.amount;
+                  // Não adicionar ao totalWithoutOutrasReceitas
                 } else if (mainCategory === "(-) DESPESAS COM SÓCIOS") {
                   initialData.despesasSocios += entry.amount;
+                  initialData.totalWithoutOutrasReceitas += entry.amount;
                 } else if (mainCategory === "(-) INVESTIMENTOS") {
                   initialData.investimentos += entry.amount;
+                  initialData.totalWithoutOutrasReceitas += entry.amount;
                 }
               }
             }
@@ -532,11 +576,11 @@ const Dashboard = () => {
           console.error(`Erro ao processar entradas de dinheiro para o período ${period.value}:`, error);
         }
         
-        // Calculate derived values using the sum of all transactions
-        initialData.resultadoFinal = initialData.totalTransactions;
+        // MODIFICADO: Resultado final agora é sem OUTRAS RECEITAS por padrão
+        initialData.resultadoFinal = initialData.totalWithoutOutrasReceitas;
         
-        // Calculate result without "aportes"
-        initialData.resultadoFinalSemAportes = initialData.resultadoFinal - initialData.aportesValue;
+        // MODIFICADO: Resultado com todas as receitas
+        initialData.resultadoFinalComAportes = initialData.resultadoFinal + initialData.outrasReceitas;
         
         // Calculate total costs (all expenses combined)
         initialData.custosTotal = Math.abs(initialData.custosDiretos) + 
@@ -557,7 +601,7 @@ const Dashboard = () => {
     } finally {
       setLoadingPeriodsSummary(false);
     }
-  }, [periods]);
+  }, [periods, periodsToShow]); // MODIFICADO: Adicionado periodsToShow como dependência
 
   // Buscar períodos disponíveis
   const loadAvailablePeriods = useCallback(async () => {
@@ -665,7 +709,7 @@ const Dashboard = () => {
     if (periods.length > 0) {
       loadPeriodsSummary();
     }
-  }, [periods, loadPeriodsSummary]);
+  }, [periods, periodsToShow, loadPeriodsSummary]); // MODIFICADO: Adicionado periodsToShow como dependência
 
   // Função para tratar mudança de período
   const handlePeriodChange = async (event) => {
@@ -682,6 +726,15 @@ const Dashboard = () => {
     localStorage.setItem('selectedPeriod', period);
     
     await loadFinancialData(period);
+  };
+
+  // NOVO: Função para tratar mudança na quantidade de períodos a mostrar
+  const handlePeriodsToShowChange = (event) => {
+    const value = parseInt(event.target.value);
+    setPeriodsToShow(value);
+    
+    // Opcional: Salvar preferência no localStorage
+    localStorage.setItem('periodsToShow', value.toString());
   };
 
   // Formatar valor monetário
@@ -824,11 +877,11 @@ const Dashboard = () => {
             {loadingFinancialData ? (
               <span className="loading-text">Carregando...</span>
             ) : (
-              formatCurrency(excludeAportes ? financialData.resultadoFinalSemAportes : financialData.resultadoFinal)
+              formatCurrency(includeAportes ? financialData.resultadoFinalComAportes : financialData.resultadoFinal)
             )}
           </div>
           <div className="fin-card-description">
-            Resultado líquido do período {excludeAportes && "(sem aportes)"}
+            Resultado líquido do período {includeAportes && "(com aportes)"}
           </div>
           <div className="fin-card-footer">
             <div className="progress-bar">
@@ -854,16 +907,36 @@ const Dashboard = () => {
       <div className="period-summary-section">
         <div className="section-header">
           <h2>Evolução dos Resultados</h2>
-          <div className="exclude-aportes-toggle">
-            <label>
-              <input 
-                type="checkbox" 
-                checked={excludeAportes}
-                onChange={() => setExcludeAportes(!excludeAportes)}
-              />
-              Excluir aportes de sócios do resultado final
-            </label>
-            {excludeAportes && <span className="filter-active">Filtro ativo</span>}
+          <div className="summary-controls">
+            {/* NOVO: Seletor para quantidade de períodos */}
+            <div className="periods-to-show-dropdown">
+              <label htmlFor="periods-to-show-select">Mostrar: </label>
+              <select
+                id="periods-to-show-select"
+                value={periodsToShow}
+                onChange={handlePeriodsToShowChange}
+                disabled={loadingPeriodsSummary}
+                className="period-select"
+              >
+                {periodOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="exclude-aportes-toggle">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={includeAportes}
+                  onChange={() => setIncludeAportes(!includeAportes)}
+                />
+                Mostrar aportes de sócios ao resultado final
+              </label>
+              {includeAportes && <span className="filter-active">Filtro ativo</span>}
+            </div>
           </div>
         </div>
 
@@ -881,9 +954,9 @@ const Dashboard = () => {
             {/* Summary Cards View */}
             <div className="summary-cards-container">
               {periodsSummary.map((period, index) => {
-                // Determine if the result is positive based on excludeAportes setting
-                const isPositiveResult = excludeAportes ? 
-                  period.resultadoFinalSemAportes >= 0 : 
+                // Determine if the result is positive based on includeAportes setting
+                const isPositiveResult = includeAportes ? 
+                  period.resultadoFinalComAportes >= 0 : 
                   period.resultadoFinal >= 0;
                   
                 return (
@@ -894,11 +967,11 @@ const Dashboard = () => {
                     <div className="period-card-header">
                       <span className="period-name">{period.periodLabel}</span>
                       <span className={`period-result ${
-                        excludeAportes ? 
-                          (period.resultadoFinalSemAportes >= 0 ? 'positive' : 'negative') : 
+                        includeAportes ? 
+                          (period.resultadoFinalComAportes >= 0 ? 'positive' : 'negative') : 
                           (period.resultadoFinal >= 0 ? 'positive' : 'negative')
                       }`}>
-                        {formatCurrency(excludeAportes ? period.resultadoFinalSemAportes : period.resultadoFinal)}
+                        {formatCurrency(includeAportes ? period.resultadoFinalComAportes : period.resultadoFinal)}
                       </span>
                     </div>
                     
@@ -918,10 +991,10 @@ const Dashboard = () => {
                         </span>
                       </div>
                       
-                      {excludeAportes && period.aportesValue > 0 && (
+                      {includeAportes && period.outrasReceitas > 0 && (
                         <div className="period-metric aportes">
-                          <span className="metric-label">Aportes</span>
-                          <span className="metric-value">{formatCurrency(period.aportesValue)}</span>
+                          <span className="metric-label">Aportes/Outras Receitas</span>
+                          <span className="metric-value">{formatCurrency(period.outrasReceitas)}</span>
                         </div>
                       )}
                     </div>
@@ -944,7 +1017,7 @@ const Dashboard = () => {
               })}
             </div>
 
-            {/* Summary Table */}
+            {/* Summary Table - MODIFICADO: Adicionada coluna de Aportes quando includeAportes for true */}
             <div className="summary-table-container">
               <table className="summary-table">
                 <thead>
@@ -953,6 +1026,7 @@ const Dashboard = () => {
                     <th>Receita</th>
                     <th>Custos Totais</th>
                     <th>Lucro Bruto</th>
+                    {includeAportes && <th>Aportes</th>}
                     <th>Resultado Final</th>
                   </tr>
                 </thead>
@@ -965,17 +1039,20 @@ const Dashboard = () => {
                       <td className={period.lucroBruto >= 0 ? "amount-positive" : "amount-negative"}>
                         {formatCurrency(period.lucroBruto)}
                       </td>
+                      {includeAportes && 
+                        <td className="amount-positive">{formatCurrency(period.outrasReceitas)}</td>
+                      }
                       <td className={
-                        excludeAportes ? 
-                          (period.resultadoFinalSemAportes >= 0 ? "amount-positive" : "amount-negative") : 
+                        includeAportes ? 
+                          (period.resultadoFinalComAportes >= 0 ? "amount-positive" : "amount-negative") : 
                           (period.resultadoFinal >= 0 ? "amount-positive" : "amount-negative")
                       }>
-                        {formatCurrency(excludeAportes ? period.resultadoFinalSemAportes : period.resultadoFinal)}
+                        {formatCurrency(includeAportes ? period.resultadoFinalComAportes : period.resultadoFinal)}
                       </td>
                     </tr>
                   ))}
                   
-                  {/* Totals row */}
+                  {/* Totals row - MODIFICADO: Adicionada célula para total de aportes */}
                   <tr className="total-row">
                     <td><strong>TOTAL</strong></td>
                     <td className="amount-positive">
@@ -987,14 +1064,19 @@ const Dashboard = () => {
                     <td className={periodsSummary.reduce((sum, period) => sum + period.lucroBruto, 0) >= 0 ? "amount-positive" : "amount-negative"}>
                       {formatCurrency(periodsSummary.reduce((sum, period) => sum + period.lucroBruto, 0))}
                     </td>
+                    {includeAportes && 
+                      <td className="amount-positive">
+                        {formatCurrency(periodsSummary.reduce((sum, period) => sum + period.outrasReceitas, 0))}
+                      </td>
+                    }
                     <td className={
-                      excludeAportes ?
-                        (periodsSummary.reduce((sum, period) => sum + period.resultadoFinalSemAportes, 0) >= 0 ? "amount-positive" : "amount-negative") :
+                      includeAportes ?
+                        (periodsSummary.reduce((sum, period) => sum + period.resultadoFinalComAportes, 0) >= 0 ? "amount-positive" : "amount-negative") :
                         (periodsSummary.reduce((sum, period) => sum + period.resultadoFinal, 0) >= 0 ? "amount-positive" : "amount-negative")
                     }>
                       {formatCurrency(
-                        excludeAportes ?
-                          periodsSummary.reduce((sum, period) => sum + period.resultadoFinalSemAportes, 0) :
+                        includeAportes ?
+                          periodsSummary.reduce((sum, period) => sum + period.resultadoFinalComAportes, 0) :
                           periodsSummary.reduce((sum, period) => sum + period.resultadoFinal, 0)
                       )}
                     </td>
