@@ -1,4 +1,4 @@
-// src/components/Charts/Charts.js - Versão com cores atualizadas
+// src/components/Charts/Charts.js - Versão atualizada
 import React, { useState, useEffect, useCallback } from "react";
 import { auth, db, storage } from "../../firebase/config";
 import { 
@@ -39,8 +39,8 @@ const Charts = () => {
   const [selectedCategories, setSelectedCategories] = useState([]); // Selected categories for filtering
   const [filterByCategory, setFilterByCategory] = useState(false); // Toggle for category filtering
 
-  const [excludeAportesChart, setExcludeAportesChart] = useState(false);
-  const [excludeAportesTable, setExcludeAportesTable] = useState(false);
+  const [includeAportesChart, setIncludeAportesChart] = useState(false);
+  const [includeAportesTable, setIncludeAportesTable] = useState(false);
   
   // Nova paleta de cores para linhas
   const COLORS = [
@@ -280,8 +280,8 @@ const Charts = () => {
       const resultadoOperacional = lucroBruto + financialTotals.despesasOperacionais + financialTotals.outrasReceitas;
       const resultadoAntesIR = resultadoOperacional + financialTotals.despesasSocios;
       
-      // Para o resultado final, usar a soma de todas as transações
-      const resultadoFinal = financialTotals.totalTransactions;
+      // Modificação: Para o resultado final, excluir OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS
+      const resultadoFinal = financialTotals.totalTransactions - financialTotals.outrasReceitas;
       
       return {
         periodSummary: {
@@ -479,19 +479,19 @@ const Charts = () => {
     if (!filterByCategory || selectedCategories.length === 0) {
       // No category filter or no categories selected, use normal data
       return financialData.map(period => {
-        // Se estiver excluindo aportes, calcular resultado final ajustado
+        // Se estiver incluindo aportes, calcular resultado final ajustado
         let resultadoFinalAjustado = period.resultadoFinal;
         
         // Procurar por aportes de sócios nos dados de categoria
-        if (excludeAportesChart) {
+        if (includeAportesChart) {
           const periodCategoryData = categoryData.find(pc => pc.period === period.period);
           if (periodCategoryData && periodCategoryData.categories) {
             // Procurar categorias que contém "aporte" nos dados de categoria
             Object.entries(periodCategoryData.categories).forEach(([categoryPath, categoryData]) => {
               if (categoryPath.toLowerCase().includes('aporte') || 
                   (categoryData.category && categoryData.category.toLowerCase().includes('aporte'))) {
-                // Subtrair o valor do aporte do resultado final
-                resultadoFinalAjustado -= categoryData.value;
+                // Adicionar o valor do aporte ao resultado final
+                resultadoFinalAjustado += categoryData.value;
               }
             });
           }
@@ -500,7 +500,7 @@ const Charts = () => {
         // Para custos diretos, mostrar o valor absoluto para visualização
         const metricValue = selectedMetric === 'custosDiretos' ? 
                            (period['custosDiretosAbs'] || Math.abs(period[selectedMetric])) : 
-                           (excludeAportesChart && selectedMetric === 'resultadoFinal' ? 
+                           (includeAportesChart && selectedMetric === 'resultadoFinal' ? 
                               resultadoFinalAjustado : period[selectedMetric]);
         
         return {
@@ -559,9 +559,9 @@ const Charts = () => {
       ? "Evolução de Categorias por Período" 
       : `Evolução de ${metricName} por Período`;
     
-    // Adicionar indicação de que os aportes foram excluídos
-    const titleWithAportes = excludeAportesChart && !filterByCategory 
-      ? `${chartTitle} (Excluindo Aportes)` 
+    // Adicionar indicação de que os aportes foram incluídos
+    const titleWithAportes = includeAportesChart && !filterByCategory 
+      ? `${chartTitle} (Incluindo Aportes)` 
       : chartTitle;
     
     return (
@@ -606,7 +606,7 @@ const Charts = () => {
               <Line 
                 type="monotone" 
                 dataKey="value" 
-                name={excludeAportesChart ? `${metricName} (Excluindo Aportes)` : metricName}
+                name={includeAportesChart ? `${metricName} (Incluindo Aportes)` : metricName}
                 stroke="#3273dc" 
                 strokeWidth={2}
                 activeDot={{ r: 8 }}
@@ -632,9 +632,9 @@ const Charts = () => {
       ? "Comparação de Categorias por Período" 
       : `Comparação de ${metricName} por Período`;
     
-    // Adicionar indicação de que os aportes foram excluídos
-    const titleWithAportes = excludeAportesChart && !filterByCategory 
-      ? `${chartTitle} (Excluindo Aportes)` 
+    // Adicionar indicação de que os aportes foram incluídos
+    const titleWithAportes = includeAportesChart && !filterByCategory 
+      ? `${chartTitle} (Incluindo Aportes)` 
       : chartTitle;
     
     return (
@@ -712,7 +712,7 @@ const Charts = () => {
               // Sem filtro de categoria, mostrar apenas a métrica selecionada
               <Bar 
                 dataKey="value" 
-                name={excludeAportesChart ? `${metricName} (Excluindo Aportes)` : metricName}
+                name={includeAportesChart ? `${metricName} (Incluindo Aportes)` : metricName}
                 fill="#3273dc"
                 radius={[4, 4, 0, 0]}
               >
@@ -737,19 +737,19 @@ const Charts = () => {
     if (!filterByCategory || selectedCategories.length === 0) {
       // Sem filtro de categoria, processar dados normais
       results = financialData.map(period => {
-        // Se estiver excluindo aportes, calcular resultado final ajustado
+        // Se estiver incluindo aportes, calcular resultado final ajustado
         let resultadoFinalAjustado = period.resultadoFinal;
         
         // Procurar por aportes de sócios nos dados de categoria
-        if (excludeAportesTable) {
+        if (includeAportesTable) {
           const periodCategoryData = categoryData.find(pc => pc.period === period.period);
           if (periodCategoryData && periodCategoryData.categories) {
             // Procurar categorias que contém "aporte" nos dados de categoria
             Object.entries(periodCategoryData.categories).forEach(([categoryPath, categoryData]) => {
               if (categoryPath.toLowerCase().includes('aporte') || 
                   (categoryData.category && categoryData.category.toLowerCase().includes('aporte'))) {
-                // Subtrair o valor do aporte do resultado final
-                resultadoFinalAjustado -= categoryData.value;
+                // Adicionar o valor do aporte ao resultado final
+                resultadoFinalAjustado += categoryData.value;
               }
             });
           }
@@ -834,11 +834,11 @@ const Charts = () => {
                   <label className="exclude-aportes-toggle">
                     <input 
                       type="checkbox" 
-                      checked={excludeAportesChart}
-                      onChange={() => setExcludeAportesChart(!excludeAportesChart)}
+                      checked={includeAportesChart}
+                      onChange={() => setIncludeAportesChart(!includeAportesChart)}
                     />
-                    <span>Excluir aportes de sócios do cálculo do Resultado Final</span>
-                    {excludeAportesChart && (
+                    <span>Incluir aportes de sócios no cálculo do Resultado Final</span>
+                    {includeAportesChart && (
                       <span className="active-filter-indicator">Filtro ativo</span>
                     )}
                   </label>
@@ -940,10 +940,10 @@ const Charts = () => {
                 <label className="exclude-aportes-toggle">
                   <input 
                     type="checkbox" 
-                    checked={excludeAportesTable}
-                    onChange={() => setExcludeAportesTable(!excludeAportesTable)}
+                    checked={includeAportesTable}
+                    onChange={() => setIncludeAportesTable(!includeAportesTable)}
                   />
-                  <span>Excluir aportes de sócios do cálculo do Resultado Final</span>
+                  <span>Incluir aportes de sócios no cálculo do Resultado Final</span>
                 </label>
               </div>
               
@@ -999,7 +999,7 @@ const Charts = () => {
                               {formatCurrency(period.lucroBruto)}
                             </td>
                             <td className={period.resultadoFinalAjustado >= 0 ? "amount-positive" : "amount-negative"}>
-                              {formatCurrency(excludeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal)}
+                              {formatCurrency(includeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal)}
                             </td>
                           </>
                         )}
@@ -1019,8 +1019,8 @@ const Charts = () => {
                         <td className={prepareSummaryTableData().reduce((sum, period) => sum + period.lucroBruto, 0) >= 0 ? "amount-positive" : "amount-negative"}>
                           {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.lucroBruto, 0))}
                         </td>
-                        <td className={prepareSummaryTableData().reduce((sum, period) => sum + (excludeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal), 0) >= 0 ? "amount-positive" : "amount-negative"}>
-                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + (excludeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal), 0))}
+                        <td className={prepareSummaryTableData().reduce((sum, period) => sum + (includeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal), 0) >= 0 ? "amount-positive" : "amount-negative"}>
+                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + (includeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal), 0))}
                         </td>
                       </tr>
                     ) : (

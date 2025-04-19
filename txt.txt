@@ -14,8 +14,13 @@ X   Gerenciador de Períodos  (pop up de erro quando ja existe um periodo do mes
 X   Entrada de Dinheiro
 X   Configurações
 
-Atualizar a aba de Gráficos
+
+Mostrar Pix
+
+Remover opções de adicionar aporte de socio botão da aba grafico
 
 Calculador automatico de impostos
 
-Leitor e adicionar dados da folha de pagamento no DRE
+Leitor e adicionar dados da folha de pagamento no DRE (OPCIONAL)
+
+Configurações
