@@ -255,6 +255,20 @@ const CategoryDetails = () => {
                 }
               }
               
+              // NEW CODE: Check if the transaction has been auto-categorized with categoryPath
+              if (!isCategorized && transaction.categoryPath) {
+                const pathParts = transaction.categoryPath.split('.');
+                if (pathParts.length >= 2) {
+                  const trnGroup = pathParts[0];
+                  const trnCategory = pathParts[1];
+                  
+                  if (trnGroup === selectedGroup && trnCategory === selectedCategoryName) {
+                    isCategorized = true;
+                    console.log(`Auto-categorized transaction found: ${transaction.description} (${transaction.categoryPath})`);
+                  }
+                }
+              }
+              
               if (isCategorized) {
                 transactionsForCategory.push({
                   ...transaction,

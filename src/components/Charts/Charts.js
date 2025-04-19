@@ -38,9 +38,6 @@ const Charts = () => {
   const [availableCategories, setAvailableCategories] = useState([]); // List of all available categories
   const [selectedCategories, setSelectedCategories] = useState([]); // Selected categories for filtering
   const [filterByCategory, setFilterByCategory] = useState(false); // Toggle for category filtering
-
-  const [includeAportesChart, setIncludeAportesChart] = useState(false);
-  const [includeAportesTable, setIncludeAportesTable] = useState(false);
   
   // Nova paleta de cores para linhas
   const COLORS = [
@@ -479,29 +476,10 @@ const Charts = () => {
     if (!filterByCategory || selectedCategories.length === 0) {
       // No category filter or no categories selected, use normal data
       return financialData.map(period => {
-        // Se estiver incluindo aportes, calcular resultado final ajustado
-        let resultadoFinalAjustado = period.resultadoFinal;
-        
-        // Procurar por aportes de sócios nos dados de categoria
-        if (includeAportesChart) {
-          const periodCategoryData = categoryData.find(pc => pc.period === period.period);
-          if (periodCategoryData && periodCategoryData.categories) {
-            // Procurar categorias que contém "aporte" nos dados de categoria
-            Object.entries(periodCategoryData.categories).forEach(([categoryPath, categoryData]) => {
-              if (categoryPath.toLowerCase().includes('aporte') || 
-                  (categoryData.category && categoryData.category.toLowerCase().includes('aporte'))) {
-                // Adicionar o valor do aporte ao resultado final
-                resultadoFinalAjustado += categoryData.value;
-              }
-            });
-          }
-        }
-        
         // Para custos diretos, mostrar o valor absoluto para visualização
         const metricValue = selectedMetric === 'custosDiretos' ? 
                            (period['custosDiretosAbs'] || Math.abs(period[selectedMetric])) : 
-                           (includeAportesChart && selectedMetric === 'resultadoFinal' ? 
-                              resultadoFinalAjustado : period[selectedMetric]);
+                           period[selectedMetric];
         
         return {
           name: formatPeriod(period.period),
@@ -559,15 +537,10 @@ const Charts = () => {
       ? "Evolução de Categorias por Período" 
       : `Evolução de ${metricName} por Período`;
     
-    // Adicionar indicação de que os aportes foram incluídos
-    const titleWithAportes = includeAportesChart && !filterByCategory 
-      ? `${chartTitle} (Incluindo Aportes)` 
-      : chartTitle;
-    
     return (
       <div className="chart-container">
         <h3>
-          {titleWithAportes}
+          {chartTitle}
           {filterByCategory && selectedCategories.length > 0 && (
             <span className="selected-categories-count">{selectedCategories.length}</span>
           )}
@@ -606,7 +579,7 @@ const Charts = () => {
               <Line 
                 type="monotone" 
                 dataKey="value" 
-                name={includeAportesChart ? `${metricName} (Incluindo Aportes)` : metricName}
+                name={metricName}
                 stroke="#3273dc" 
                 strokeWidth={2}
                 activeDot={{ r: 8 }}
@@ -632,16 +605,11 @@ const Charts = () => {
       ? "Comparação de Categorias por Período" 
       : `Comparação de ${metricName} por Período`;
     
-    // Adicionar indicação de que os aportes foram incluídos
-    const titleWithAportes = includeAportesChart && !filterByCategory 
-      ? `${chartTitle} (Incluindo Aportes)` 
-      : chartTitle;
-    
     return (
       <div className="chart-container enhanced-chart">
         <div className="chart-header">
           <h3>
-            {titleWithAportes}
+            {chartTitle}
             {filterByCategory && selectedCategories.length > 0 && (
               <span className="selected-categories-count">{selectedCategories.length}</span>
             )}
@@ -712,7 +680,7 @@ const Charts = () => {
               // Sem filtro de categoria, mostrar apenas a métrica selecionada
               <Bar 
                 dataKey="value" 
-                name={includeAportesChart ? `${metricName} (Incluindo Aportes)` : metricName}
+                name={metricName}
                 fill="#3273dc"
                 radius={[4, 4, 0, 0]}
               >
@@ -737,27 +705,8 @@ const Charts = () => {
     if (!filterByCategory || selectedCategories.length === 0) {
       // Sem filtro de categoria, processar dados normais
       results = financialData.map(period => {
-        // Se estiver incluindo aportes, calcular resultado final ajustado
-        let resultadoFinalAjustado = period.resultadoFinal;
-        
-        // Procurar por aportes de sócios nos dados de categoria
-        if (includeAportesTable) {
-          const periodCategoryData = categoryData.find(pc => pc.period === period.period);
-          if (periodCategoryData && periodCategoryData.categories) {
-            // Procurar categorias que contém "aporte" nos dados de categoria
-            Object.entries(periodCategoryData.categories).forEach(([categoryPath, categoryData]) => {
-              if (categoryPath.toLowerCase().includes('aporte') || 
-                  (categoryData.category && categoryData.category.toLowerCase().includes('aporte'))) {
-                // Adicionar o valor do aporte ao resultado final
-                resultadoFinalAjustado += categoryData.value;
-              }
-            });
-          }
-        }
-        
         return {
           ...period,
-          resultadoFinalAjustado,
           // Usar valores absolutos para exibição de custos
           custosDiretosAbs: period.custosDiretosAbs || Math.abs(period.custosDiretos)
         };
@@ -828,22 +777,8 @@ const Charts = () => {
                 </div>
               </div>
               
-              {/* Controles de filtro de categoria aprimorados */}
+              {/* Controles de filtro de categoria */}
               <div className="filter-controls">
-                <div className="exclude-aportes-control">
-                  <label className="exclude-aportes-toggle">
-                    <input 
-                      type="checkbox" 
-                      checked={includeAportesChart}
-                      onChange={() => setIncludeAportesChart(!includeAportesChart)}
-                    />
-                    <span>Incluir aportes de sócios no cálculo do Resultado Final</span>
-                    {includeAportesChart && (
-                      <span className="active-filter-indicator">Filtro ativo</span>
-                    )}
-                  </label>
-                </div>
-                
                 <div className="filter-toggle">
                   <label>
                     <input 
@@ -936,17 +871,6 @@ const Charts = () => {
             <div className="periods-summary">
               <h3>Resumo dos Períodos</h3>
               
-              <div className="summary-controls">
-                <label className="exclude-aportes-toggle">
-                  <input 
-                    type="checkbox" 
-                    checked={includeAportesTable}
-                    onChange={() => setIncludeAportesTable(!includeAportesTable)}
-                  />
-                  <span>Incluir aportes de sócios no cálculo do Resultado Final</span>
-                </label>
-              </div>
-              
               <div className="summary-table-container">
                 <table className="summary-table">
                   <thead>
@@ -998,8 +922,8 @@ const Charts = () => {
                             <td className={period.lucroBruto >= 0 ? "amount-positive" : "amount-negative"}>
                               {formatCurrency(period.lucroBruto)}
                             </td>
-                            <td className={period.resultadoFinalAjustado >= 0 ? "amount-positive" : "amount-negative"}>
-                              {formatCurrency(includeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal)}
+                            <td className={period.resultadoFinal >= 0 ? "amount-positive" : "amount-negative"}>
+                              {formatCurrency(period.resultadoFinal)}
                             </td>
                           </>
                         )}
@@ -1019,8 +943,8 @@ const Charts = () => {
                         <td className={prepareSummaryTableData().reduce((sum, period) => sum + period.lucroBruto, 0) >= 0 ? "amount-positive" : "amount-negative"}>
                           {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.lucroBruto, 0))}
                         </td>
-                        <td className={prepareSummaryTableData().reduce((sum, period) => sum + (includeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal), 0) >= 0 ? "amount-positive" : "amount-negative"}>
-                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + (includeAportesTable ? period.resultadoFinalAjustado : period.resultadoFinal), 0))}
+                        <td className={prepareSummaryTableData().reduce((sum, period) => sum + period.resultadoFinal, 0) >= 0 ? "amount-positive" : "amount-negative"}>
+                          {formatCurrency(prepareSummaryTableData().reduce((sum, period) => sum + period.resultadoFinal, 0))}
                         </td>
                       </tr>
                     ) : (

@@ -273,22 +273,21 @@ const EditCategorized = () => {
             // Filtrar transações categorizadas
             transactions.forEach(transaction => {
               const normalizedDescription = transaction.description.trim().toLowerCase();
+              let isCategorized = false;
+              let categoryInfo = null;
               
               // Primeiro verificar se existe um mapeamento específico para esta transação
               if (specificMappings[transaction.id]) {
                 const specificMapping = specificMappings[transaction.id];
                 
-                categorizedTransactions.push({
-                  ...transaction,
-                  fileId: fileDoc.id,
-                  fileName: fileData.fileName,
-                  period: fileData.period,
-                  periodLabel: fileData.periodLabel,
+                categoryInfo = {
                   category: specificMapping.categoryName,
                   categoryPath: specificMapping.categoryPath,
                   groupName: specificMapping.groupName,
                   isSpecificMapping: true
-                });
+                };
+                
+                isCategorized = true;
                 
                 // Marcar esta transação como processada
                 transactionIdMap[transaction.id] = true;
@@ -299,17 +298,44 @@ const EditCategorized = () => {
                 
                 // Verificar se não é um mapeamento específico para outra transação
                 if (!mapping.isSpecificMapping) {
-                  categorizedTransactions.push({
-                    ...transaction,
-                    fileId: fileDoc.id,
-                    fileName: fileData.fileName,
-                    period: fileData.period,
-                    periodLabel: fileData.periodLabel,
+                  categoryInfo = {
                     category: mapping.categoryName,
                     categoryPath: mapping.categoryPath,
                     groupName: mapping.groupName
-                  });
+                  };
+                  
+                  isCategorized = true;
                 }
+              }
+              // NOVA VERIFICAÇÃO: Verificar se a transação tem categoryPath definido diretamente
+              else if (transaction.categoryPath) {
+                const pathParts = transaction.categoryPath.split('.');
+                if (pathParts.length >= 2) {
+                  categoryInfo = {
+                    category: pathParts[1],
+                    categoryPath: transaction.categoryPath,
+                    groupName: pathParts[0],
+                    autoMapped: true
+                  };
+                  
+                  isCategorized = true;
+                  console.log(`Auto-categorized transaction found: ${transaction.description} (${transaction.categoryPath})`);
+                }
+              }
+              
+              if (isCategorized && categoryInfo) {
+                categorizedTransactions.push({
+                  ...transaction,
+                  fileId: fileDoc.id,
+                  fileName: fileData.fileName,
+                  period: fileData.period,
+                  periodLabel: fileData.periodLabel,
+                  category: categoryInfo.category,
+                  categoryPath: categoryInfo.categoryPath,
+                  groupName: categoryInfo.groupName,
+                  isSpecificMapping: categoryInfo.isSpecificMapping || false,
+                  autoMapped: categoryInfo.autoMapped || false
+                });
               }
             });
           } catch (error) {
@@ -593,6 +619,7 @@ const EditCategorized = () => {
                           <td>
                             <span className="category-badge">
                               {transaction.category}
+                              {transaction.autoMapped && <span title="Categorizada automaticamente"> (Auto)</span>}
                             </span>
                           </td>
                           <td className={transaction.amount >= 0 ? "amount-positive" : "amount-negative"}>

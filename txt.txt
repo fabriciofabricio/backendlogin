@@ -15,9 +15,9 @@ X   Entrada de Dinheiro
 X   Configurações
 
 
-Mostrar Pix
+Mostrar Pix no grafico
 
-Remover opções de adicionar aporte de socio botão da aba grafico
+Fazer com que o banco sicredi salve no mesmo formato que o stone no firebase
 
 Calculador automatico de impostos
 

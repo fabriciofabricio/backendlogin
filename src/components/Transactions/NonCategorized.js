@@ -210,6 +210,12 @@ const NonCategorized = () => {
           if (desc.includes("crédito") && !categoryMappings["padrao_stone_credito"]) {
             return true;
           }
+          if (desc.endsWith("ted") && !categoryMappings["padrao_stone_ted"]) {
+            return true;
+          }
+          if ((desc.startsWith("vr") || desc.startsWith("alelo")) && !categoryMappings["padrao_stone_vr"]) {
+            return true;
+          }
         } else if (bankName.includes("COOP DE CRED") || bankName.includes("SICOOB")) {
           if (desc.toUpperCase().includes("IFOOD") && !categoryMappings["padrao_sicoob_ifood"]) {
             return true;
@@ -320,6 +326,16 @@ const NonCategorized = () => {
           // Padrão: Transações que contêm "Crédito"
           else if (normalizedDescription.includes("crédito")) {
             patternKey = "padrao_stone_credito";
+            useGenericRule = true;
+          }
+          // Padrão: Transações que terminam com "TED"
+          else if (normalizedDescription.endsWith("ted")) {
+            patternKey = "padrao_stone_ted";
+            useGenericRule = true;
+          }
+          // Padrão: Transações que começam com "VR" ou "ALELO"
+          else if (normalizedDescription.startsWith("vr") || normalizedDescription.startsWith("alelo")) {
+            patternKey = "padrao_stone_vr";
             useGenericRule = true;
           }
         }
@@ -529,6 +545,16 @@ const NonCategorized = () => {
                     console.log(`Transação "${normalizedDescription}" categorizada por padrão crédito`);
                     isCategorized = true;
                   }
+                  else if (normalizedDescription.endsWith("ted") && 
+                          patternMappings["padrao_stone_ted"]) {
+                    console.log(`Transação "${normalizedDescription}" categorizada por padrão TED`);
+                    isCategorized = true;
+                  }
+                  else if ((normalizedDescription.startsWith("vr") || normalizedDescription.startsWith("alelo")) && 
+                          patternMappings["padrao_stone_vr"]) {
+                    console.log(`Transação "${normalizedDescription}" categorizada por padrão VR/ALELO`);
+                    isCategorized = true;
+                  }
                 }
                 // Verificar padrões para o banco SICOOB
                 else if (bankName.includes("COOP DE CRED") || bankName.includes("SICOOB")) {
@@ -691,6 +717,10 @@ const NonCategorized = () => {
             patternKey = "padrao_stone_debito";
           } else if (normalizedDescription.includes("crédito")) {
             patternKey = "padrao_stone_credito";
+          } else if (normalizedDescription.endsWith("ted")) {
+            patternKey = "padrao_stone_ted";
+          } else if (normalizedDescription.startsWith("vr") || normalizedDescription.startsWith("alelo")) {
+            patternKey = "padrao_stone_vr";
           }
         } else if (transaction.bankInfo?.org?.includes("SICOOB") || 
                   transaction.bankInfo?.org?.includes("COOP DE CRED")) {
@@ -789,6 +819,13 @@ const NonCategorized = () => {
       setLoading(false);
     }
   };
+
+  // Obter categorias únicas para o filtro
+  const uniqueCategories = [...new Set(
+    transactions
+      .filter(t => t.groupName)
+      .map(t => t.groupName)
+  )];
 
   if (loading && (!selectedPeriod || Object.keys(categories).length === 0)) {
     return (
