@@ -354,8 +354,9 @@ const DREReport = () => {
     results.lucroBruto = results.receitaLiquida + custos; // Valor negativo já está com sinal
     
     const despesasOperacionais = dreStructure["(-) DESPESAS OPERACIONAIS"].rawTotal || 0;
-    const outrasReceitas = dreStructure["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"].rawTotal || 0;
-    results.resultadoOperacional = results.lucroBruto + despesasOperacionais + outrasReceitas;
+    // Não incluir outras receitas no cálculo do resultado operacional
+    // const outrasReceitas = dreStructure["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"].rawTotal || 0;
+    results.resultadoOperacional = results.lucroBruto + despesasOperacionais; // Removida a inclusão de outrasReceitas
     
     const despesasSocios = dreStructure["(-) DESPESAS COM SÓCIOS"].rawTotal || 0;
     results.resultadoAntesIR = results.resultadoOperacional + despesasSocios;
@@ -363,15 +364,20 @@ const DREReport = () => {
     const investimentos = dreStructure["(-) INVESTIMENTOS"].rawTotal || 0;
     const naoCategorizado = dreStructure["NÃO CATEGORIZADO"].rawTotal || 0;
     
-    // Soma de todas as transações para verificação
-    const totalTransactions = Object.values(dreStructure).reduce((sum, cat) => sum + cat.rawTotal, 0);
+    // Soma de todas as transações EXCETO OUTRAS RECEITAS para verificação
+    const totalTransactions = Object.entries(dreStructure).reduce((sum, [key, cat]) => {
+      if (key !== "(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS") {
+        return sum + cat.rawTotal;
+      }
+      return sum;
+    }, 0);
     
-    // O resultado final é a soma de TODAS as transações
+    // O resultado final é a soma de todas as transações EXCETO OUTRAS RECEITAS
     results.resultadoLiquido = totalTransactions;
     
     // Log para comparação
     console.log("Resultado final (cálculo detalhado):", results.resultadoAntesIR + investimentos + naoCategorizado);
-    console.log("Resultado final (soma total transações):", totalTransactions);
+    console.log("Resultado final (soma total transações exceto outras receitas):", totalTransactions);
     
     return results;
   };
@@ -552,7 +558,7 @@ const DREReport = () => {
                   {(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.total !== 0) && (
                     <>
                       <tr className="main-category">
-                        <td>OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS</td>
+                        <td>OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS <em style={{ color: 'black', fontWeight: 'normal' }}>(não entra no cálculo do DRE)</em></td>
                         <td className={getValueClass(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.total || 0, true)}>
                           {formatCurrency(dreData.categories?.["(+) OUTRAS RECEITAS OPERACIONAIS E NÃO OPERACIONAIS"]?.total || 0)}
                         </td>

@@ -14,7 +14,7 @@ X   Gerenciador de Períodos  (pop up de erro quando ja existe um periodo do mes
 X   Entrada de Dinheiro
 X   Configurações
 
-Trocar remover aporte de socio para adicionar aporte de socio, e remover o aporte de socio do resultado final do DRE
+Trocar remover aporte de socio para adicionar aporte de socio no dashboard
 
 Calculador automatico de impostos
 
